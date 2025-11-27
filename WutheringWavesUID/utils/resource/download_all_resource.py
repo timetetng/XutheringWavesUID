@@ -37,5 +37,6 @@ async def download_all_resource():
             "resource/guide/XiaoYang": XIAOYANG_GUIDE_PATH,
             "resource/guide/WuHen": WUHEN_GUIDE_PATH,
         },
-        "https://ww.loping151.top"
+        "https://ww.loping151.top",
+        "小维US"
     )
