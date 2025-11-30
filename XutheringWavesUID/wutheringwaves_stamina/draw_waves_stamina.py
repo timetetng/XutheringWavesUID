@@ -160,7 +160,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     force_use_bg = False
     force_not_use_bg = False
     force_not_use_custom = False
-    
+
     if user and user.stamina_bg_value:
         force_use_bg = "背景" in user.stamina_bg_value
         force_not_use_bg = "立绘" in user.stamina_bg_value
@@ -191,7 +191,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
                     break
         else:
             pile_id = char_id
-    
+
     if force_use_bg:
         pile, has_bg = await get_random_waves_bg(pile_id, force_not_use_custom=force_not_use_custom)
     elif force_not_use_bg:
@@ -209,13 +209,13 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         ratio = max(target_w / bg_w, target_h / bg_h)
         new_size = (int(bg_w * ratio), int(bg_h * ratio))
         pile = pile.resize(new_size, Image.LANCZOS)
-        
+
         left = (pile.width - target_w) // 2
         top = (pile.height - target_h) // 2
         pile = pile.crop((left, top, left + target_w, top + target_h))
-        
+
         img.paste(pile, (0, 0))
-        
+
         info = Image.open(TEXT_PATH / "main_bar_bg.png").convert("RGBA")
 
     base_info_draw = ImageDraw.Draw(base_info_bg)
@@ -308,7 +308,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     info.alpha_composite(time_img, (280, 50))
 
     max_len = 345
-    
+
     if ShowConfig.get_config("MrUseBG") and has_bg:
         dark_bg_color = (16, 26, 54, int(0.4 * 255))
         # 体力 (Y=115)
