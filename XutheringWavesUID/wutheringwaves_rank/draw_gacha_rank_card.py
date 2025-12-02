@@ -58,9 +58,9 @@ class GachaRankCard:
         # 计算加权抽数：使用实际投入加权公式
         denominator = 81 * self.char_gold + 54 * self.weapon_gold
         if denominator > 0:
-            self.weighted = (self.char_avg * self.char_gold + self.weapon_avg * self.weapon_gold) / denominator
+            self.weighted = (self.char_avg * self.char_gold + self.weapon_avg * self.weapon_gold) / denominator * 100
         else:
-            self.weighted = 0.0
+            self.weighted = 1000
 
 
 async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[GachaRankCard]:
