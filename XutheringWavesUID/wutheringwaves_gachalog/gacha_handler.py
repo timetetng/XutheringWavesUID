@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 import aiohttp
 from aiohttp import TCPConnector
 
+# 禁用安全警告
+# urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning) # aiohttp 不需要这个
+
 # Mappings
 POOL_TYPE_MAP = {
     "角色精准调谐": "1",
@@ -97,11 +100,21 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 for card in d['five_cards']:
                      p_type = card.get('cardPoolType')
                      p_type_code = POOL_TYPE_MAP.get(p_type, p_type)
+                     
+                     # Safer field access
+                     card_name = card.get('name', '未知五星')
+                     card_time = card.get('time', '')
+                     draw_total = card.get('draw_total', 1)
+                     
+                     # Skip invalid entries
+                     if not card_time:
+                         continue
+
                      latest_5stars.append({
-                        "time": card['time'],
-                        "name": card['name'],
+                        "time": card_time,
+                        "name": card_name,
                         "cardPoolType": p_type_code,
-                        "draw_total": card['draw_total'],
+                        "draw_total": draw_total,
                         "resourceId": card.get('resourceId', card.get('item_id')),
                         "qualityLevel": 5,
                         "resourceType": card.get('resourceType', '角色'),
@@ -115,16 +128,19 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                 
     extract_five_cards(card_analysis)
     
-    all_pools = set(
-        [str(x.get('cardPoolType')) for x in original_list] + 
-        [str(x['cardPoolType']) for x in latest_5stars]
-    )
+    # Use .get() when creating the set to avoid KeyError if 'cardPoolType' is missing
+    # Filter out None values
+    orig_types = [str(x.get('cardPoolType')) for x in original_list if x.get('cardPoolType')]
+    latest_types = [str(x.get('cardPoolType')) for x in latest_5stars if x.get('cardPoolType')]
+    
+    all_pools = set(orig_types + latest_types)
     
     merged_list = []
     
     for pool_id in sorted(list(all_pools)):
-        O_all = sorted([x for x in original_list if str(x.get('cardPoolType')) == str(pool_id)], key=lambda x: x['time'])
-        L_5s = sorted([x for x in latest_5stars if str(x['cardPoolType']) == str(pool_id)], key=lambda x: x['time'])
+        # Sort logic
+        O_all = sorted([x for x in original_list if str(x.get('cardPoolType')) == str(pool_id)], key=lambda x: x.get('time', ''))
+        L_5s = sorted([x for x in latest_5stars if str(x.get('cardPoolType')) == str(pool_id)], key=lambda x: x.get('time', ''))
         
         O_5s = [x for x in O_all if x.get('qualityLevel') == 5]
         
@@ -220,7 +236,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
                     items_before_x.append(item)
                 
                 count_existing = len(items_before_x)
-                target_count = cp_x['draw_total'] - 1
+                target_count = cp_x['draw_total']
                 
                 diff = target_count - count_existing
                 
@@ -238,7 +254,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
 
         merged_list.extend(pool_merged_items)
 
-    merged_list.sort(key=lambda x: x['time'], reverse=True)
+    merged_list.sort(key=lambda x: x.get('time', ''), reverse=True)
     
     return {
         "info": export_info,
