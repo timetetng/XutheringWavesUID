@@ -80,7 +80,7 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
         target_uid = raw
                 
         try:
-            latest_data = await asyncio.to_thread(fetch_sanyueqi_data, target_uid)
+            latest_data = await fetch_sanyueqi_data(target_uid)
             if not latest_data:
                 return await bot.send("获取工坊数据失败或数据为空")
             

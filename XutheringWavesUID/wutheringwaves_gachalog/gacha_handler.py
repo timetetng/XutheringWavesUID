@@ -2,13 +2,9 @@ import json
 import random
 import string
 import time
-import requests
-import urllib3
-import asyncio
 from datetime import datetime, timedelta
-
-# 禁用安全警告
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import aiohttp
+from aiohttp import TCPConnector
 
 # Mappings
 POOL_TYPE_MAP = {
@@ -50,7 +46,7 @@ def get_timestamp_minus_1s(time_str):
     except ValueError:
         return time_str
 
-def fetch_sanyueqi_data(uid: str):
+async def fetch_sanyueqi_data(uid: str):
     url = "https://api3.sanyueqi.cn/api/v2/game_user/get_sr_draw_v3"
     current_time_ms = str(int(time.time() * 1000))
     random_union_id = generate_union_id()
@@ -80,9 +76,10 @@ def fetch_sanyueqi_data(uid: str):
     }
 
     try:
-        response = requests.get(url, params=params, headers=headers, verify=False, timeout=30)
-        if response.status_code == 200:
-            return response.json()
+        async with aiohttp.ClientSession(connector=TCPConnector(ssl=False)) as session:
+            async with session.get(url, params=params, headers=headers, timeout=30) as response:
+                if response.status == 200:
+                    return await response.json()
     except Exception:
         pass
     return None
