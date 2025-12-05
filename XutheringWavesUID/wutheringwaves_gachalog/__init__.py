@@ -83,9 +83,6 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
             latest_data = await fetch_mcgf_data(target_uid)
             if not latest_data:
                 return await bot.send("获取工坊数据失败或数据为空")
-            
-            if "data" not in latest_data or "uid" not in latest_data["data"]:
-                return await bot.send("获取失败！")
 
             export_res = await export_gachalogs(uid)
             original_data = {"info": {}, "list": []}
