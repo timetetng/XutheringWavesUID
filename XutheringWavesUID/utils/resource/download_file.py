@@ -27,7 +27,7 @@ async def get_skill_img(
             await download(pic_url, _dir, name, tag="[鸣潮]")
         else:
             # logger.warning(f"[鸣潮] 角色 {char_id} 的技能图片不存在，使用默认图片")
-            _path = ROLE_DETAIL_SKILL_PATH / "1102/skill_1102.png"
+            _path = ROLE_DETAIL_SKILL_PATH / "1503" / "skill_星星花绽放.png"
 
     return Image.open(_path).convert("RGBA")
 
