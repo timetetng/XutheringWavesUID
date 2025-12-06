@@ -237,7 +237,7 @@ class WavesApi:
         if len(ck_list) > 0:
             return random.choices(ck_list, k=1)[0]
 
-    async def get_kuro_role_list(self, token: str, did: str):
+    async def get_kuro_role_list(self, token: str, did: str, game_id: Union[int, str] = GAME_ID):
         header = await get_base_header()
         header.update(
             {
@@ -245,7 +245,7 @@ class WavesApi:
                 "devCode": did,
             }
         )
-        data = {"gameId": GAME_ID}
+        data = {"gameId": game_id}
 
         return await self._waves_request(ROLE_LIST_URL, "POST", header, data=data)
 
