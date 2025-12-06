@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 
-from ..utils.api.api import GAME_ID
+from ..utils.api.api import PGR_GAME_ID, WAVES_GAME_ID
 from ..utils.api.model import KuroWavesUserInfo
 from ..utils.api.request_util import PLATFORM_SOURCE
 from ..utils.database.models import WavesBind, WavesUser
@@ -25,11 +25,11 @@ async def _fetch_roles_by_game(ck: str, did: str, game_id: int):
 async def add_cookie(ev: Event, ck: str, did: str) -> str:
     platform = PLATFORM_SOURCE
 
-    waves_roles, err = await _fetch_roles_by_game(ck, did, GAME_ID)
-    if err:
+    waves_roles, err = await _fetch_roles_by_game(ck, did, WAVES_GAME_ID)
+    pgr_roles, pgr_err = await _fetch_roles_by_game(ck, did, PGR_GAME_ID)
+    if err and pgr_err:
+        # 若两个游戏都失败，直接返回 waves 的错误
         return err
-
-    pgr_roles, _ = await _fetch_roles_by_game(ck, did, 2)
 
     role_list = []
     pgr_list = []
@@ -37,7 +37,7 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
     if waves_roles:
         for kuroWavesUserInfo in waves_roles:
             data = KuroWavesUserInfo.model_validate(kuroWavesUserInfo)
-            if data.gameId != GAME_ID:
+            if data.gameId != WAVES_GAME_ID:
                 continue
 
             user = await WavesUser.get_user_by_attr(
@@ -101,8 +101,35 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
     if pgr_roles:
         for pgr_role in pgr_roles:
             data = KuroWavesUserInfo.model_validate(pgr_role)
-            if data.gameId != 2:
+            if data.gameId != PGR_GAME_ID:
                 continue
+            pgr_user = await WavesUser.get_user_by_attr(
+                ev.user_id, ev.bot_id, "uid", data.roleId
+            )
+            if pgr_user:
+                await WavesUser.update_data_by_data(
+                    select_data={
+                        "user_id": ev.user_id,
+                        "bot_id": ev.bot_id,
+                        "uid": data.roleId,
+                    },
+                    update_data={
+                        "cookie": ck,
+                        "status": "",
+                        "platform": platform,
+                        "did": did,
+                    },
+                )
+            else:
+                await WavesUser.insert_data(
+                    ev.user_id,
+                    ev.bot_id,
+                    cookie=ck,
+                    uid=data.roleId,
+                    platform=platform,
+                    did=did,
+                )
+
             res = await WavesBind.insert_uid(
                 ev.user_id,
                 ev.bot_id,
@@ -145,16 +172,15 @@ async def refresh_bind(ev: Event) -> str:
             invalid = True
             continue
 
-        waves_roles, err = await _fetch_roles_by_game(user.cookie, user.did, GAME_ID)
-        pgr_roles, _ = await _fetch_roles_by_game(user.cookie, user.did, 2)
-
-        if err:
+        waves_roles, err = await _fetch_roles_by_game(user.cookie, user.did, WAVES_GAME_ID)
+        pgr_roles, pgr_err = await _fetch_roles_by_game(user.cookie, user.did, PGR_GAME_ID)
+        if err and pgr_err:
             continue
 
         if waves_roles:
             for role in waves_roles:
                 data = KuroWavesUserInfo.model_validate(role)
-                if data.gameId != GAME_ID:
+                if data.gameId != WAVES_GAME_ID:
                     continue
                 res = await WavesBind.insert_waves_uid(
                     ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9
@@ -168,7 +194,7 @@ async def refresh_bind(ev: Event) -> str:
         if pgr_roles:
             for role in pgr_roles:
                 data = KuroWavesUserInfo.model_validate(role)
-                if data.gameId != 2:
+                if data.gameId != PGR_GAME_ID:
                     continue
                 res = await WavesBind.insert_uid(
                     ev.user_id,
