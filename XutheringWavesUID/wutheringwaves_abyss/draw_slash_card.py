@@ -42,6 +42,7 @@ from ..utils.queues.const import QUEUE_SLASH_RECORD
 from ..utils.queues.queues import push_item
 from ..utils.resource.RESOURCE_PATH import PLAYER_PATH, SLASH_PATH
 from ..utils.waves_api import waves_api
+from .period import get_slash_period_number
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -260,6 +261,16 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                 SPECIAL_GOLD,
                 waves_font_25,
             )
+
+            # 无尽挑战添加期数显示
+            if challenge.challengeId == 12:
+                period_text = f"第{get_slash_period_number()}期"
+                temp_bar_draw.text(
+                    (700, 85),
+                    period_text,
+                    (180, 180, 180),
+                    waves_font_18,
+                )
 
             role_bg = Image.open(TEXT_PATH / "role_hang_bg.png")
             # 获取角色信息

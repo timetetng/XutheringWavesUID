@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from pathlib import Path
 from typing import Union
 
@@ -104,6 +104,11 @@ async def draw_challenge_img(ev: Event, uid: str, user_id: str) -> Union[bytes, 
         title_bar_draw.text(
             (810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm"
         )
+
+        # 添加日期显示
+        current_date = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+        title_bar_draw.text((1000, 100), current_date, "white", waves_font_20, "mm")
+
         card_img.paste(title_bar, (-20, 70), title_bar)
 
     challenge_index = 0

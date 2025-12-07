@@ -56,6 +56,13 @@ from ..utils.image import (
     get_square_avatar,
     pic_download_from_url,
 )
+from ..wutheringwaves_abyss.period import (
+    get_slash_period_number,
+    get_current_slash_cycle_start,
+    is_slash_record_expired,
+    SLASH_BASE_TIMESTAMP,
+    SLASH_BASE_TIME,
+)
 
 
 async def get_endless_rank_token_condition(ev):
@@ -97,53 +104,6 @@ BOT_COLOR = [
 ]
 
 CHINA_TZ = timezone(timedelta(hours=8))
-ENDLESS_BASE_TIME = datetime(2025, 11, 24, 4, 0, 0, tzinfo=CHINA_TZ)
-ENDLESS_BASE_TIMESTAMP = int(ENDLESS_BASE_TIME.astimezone(timezone.utc).timestamp())
-ENDLESS_REFRESH_SECONDS = 28 * 24 * 60 * 60
-ENDLESS_BASE_PERIOD = 11
-
-def get_current_endless_cycle_start(reference_time: Optional[datetime] = None) -> datetime:
-    now = reference_time or datetime.now(CHINA_TZ)
-    if now <= ENDLESS_BASE_TIME:
-        return ENDLESS_BASE_TIME
-
-    elapsed_seconds = int((now - ENDLESS_BASE_TIME).total_seconds())
-    cycles = elapsed_seconds // ENDLESS_REFRESH_SECONDS
-    return ENDLESS_BASE_TIME + timedelta(seconds=cycles * ENDLESS_REFRESH_SECONDS)
-
-
-def is_endless_record_expired(
-    record_timestamp: Optional[int],
-    reference_time: Optional[datetime] = None,
-) -> bool:
-    now = reference_time or datetime.now(CHINA_TZ)
-    if now <= ENDLESS_BASE_TIME:
-        return False
-
-    if record_timestamp is None:
-        return True
-
-    try:
-        record_ts = int(record_timestamp)
-    except (TypeError, ValueError):
-        return True
-
-    record_time = datetime.fromtimestamp(record_ts, tz=timezone.utc).astimezone(CHINA_TZ)
-    if record_time < ENDLESS_BASE_TIME:
-        return True
-
-    cycle_start = get_current_endless_cycle_start(now)
-    return record_time < cycle_start
-
-
-def get_endless_period_number(reference_time: Optional[datetime] = None) -> int:
-    ref_time = reference_time or datetime.now(CHINA_TZ)
-    if ref_time < ENDLESS_BASE_TIME:
-        return ENDLESS_BASE_PERIOD
-
-    elapsed_seconds = int((ref_time - ENDLESS_BASE_TIME).total_seconds())
-    cycles = elapsed_seconds // ENDLESS_REFRESH_SECONDS
-    return ENDLESS_BASE_PERIOD + cycles
 
 
 def parse_rank_date(date_str: str) -> Optional[datetime]:
@@ -265,7 +225,7 @@ async def draw_all_slash_rank_card(bot: Bot, ev: Event):
     if rankInfoList.data and rankInfoList.data.start_date:
         rank_dt = parse_rank_date(rankInfoList.data.start_date)
         if rank_dt:
-            period_label = f"第{get_endless_period_number(rank_dt)}期"
+            period_label = f"第{get_slash_period_number(rank_dt)}期"
     if period_label:
         title_bg_draw.text(
             (225, 360),
@@ -527,13 +487,13 @@ async def get_all_slash_rank_info(
                 record_time = None
                 slash_data = slash_raw
                 if isinstance(slash_raw, dict) and "slash_data" in slash_raw:
-                    record_time = slash_raw.get("record_time", ENDLESS_BASE_TIMESTAMP)
+                    record_time = slash_raw.get("record_time", SLASH_BASE_TIMESTAMP)
                     slash_data = slash_raw.get("slash_data")
 
                 if not isinstance(slash_data, dict) or not slash_data:
                     continue
 
-                if is_endless_record_expired(record_time):
+                if is_slash_record_expired(record_time):
                     logger.debug(f"用户{uid}无尽数据已过期，跳过")
                     continue
 
@@ -694,7 +654,7 @@ async def draw_slash_rank_list(bot: Bot, ev: Event):
     title_bg_draw.text((220, 290), title_text, "white", waves_font_58, "lm")
     title_bg_draw.text(
         (225, 360),
-        f"第{get_endless_period_number()}期",
+        f"第{get_slash_period_number()}期",
         GREY,
         waves_font_20,
         "lm",

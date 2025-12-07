@@ -502,6 +502,14 @@
         "need_admin": false
       },
       {
+        "name": "深塔海墟信息",
+        "desc": "深塔海墟信息",
+        "eg": "深塔/海墟信息11",
+        "need_ck": false,
+        "need_sk": false,
+        "need_admin": false
+      },
+      {
         "name": "游戏公告列表",
         "desc": "游戏公告列表",
         "eg": "公告",

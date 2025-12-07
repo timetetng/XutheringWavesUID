@@ -34,16 +34,17 @@ from ..utils.queues.queues import push_item
 from ..utils.util import get_version
 from ..utils.waves_api import waves_api
 from ..wutheringwaves_config import PREFIX
+from .period import get_tower_period_number
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
-ABYSS_ERROR_MESSAGE_NO_DATA = "当前暂无深渊数据\n"
-ABYSS_ERROR_MESSAGE_NO_UNLOCK = "深渊暂未解锁\n"
-ABYSS_ERROR_MESSAGE_NO_DEEP = "当前暂无深境区深渊数据\n"
+ABYSS_ERROR_MESSAGE_NO_DATA = "当前暂无深塔数据\n"
+ABYSS_ERROR_MESSAGE_NO_UNLOCK = "深塔暂未解锁\n"
+ABYSS_ERROR_MESSAGE_NO_DEEP = "当前暂无深境区深塔数据\n"
 no_login_msg = [
     "[鸣潮]",
     ">您当前为仅绑定鸣潮特征码",
-    f">请使用命令【{PREFIX}登录】后查询详细深渊数据",
+    f">请使用命令【{PREFIX}登录】后查询详细深塔数据",
     "",
 ]
 ABYSS_ERROR_MESSAGE_LOGIN = "\n".join(no_login_msg)
@@ -102,7 +103,7 @@ async def draw_abyss_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
 
     role_info = RoleList.model_validate(role_info.data)
 
-    # 深渊
+    # 深塔
     abyss_data = await get_abyss_data(uid, ck, is_self_ck)
     if isinstance(abyss_data, str) or not abyss_data:
         return abyss_data
@@ -177,6 +178,11 @@ async def draw_abyss_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
             (810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm"
         )
         card_img.paste(title_bar, (-20, 70), title_bar)
+
+    # 添加深塔期数显示（右上角）
+    period_text = f"第{get_tower_period_number()}期"
+    card_draw = ImageDraw.Draw(card_img)
+    card_draw.text((475, 50), period_text, "white", waves_font_30, "mm")
 
     # 根据面板数据获取详细信息
     role_detail_info_map = await get_all_roleid_detail_info(uid)
@@ -302,7 +308,7 @@ async def draw_abyss_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
             return ABYSS_ERROR_MESSAGE_LOGIN
         return ABYSS_ERROR_MESSAGE_NO_DATA
 
-    # 上传深渊记录
+    # 上传深塔记录
     await upload_abyss_record(is_self_ck, uid, difficultyName, abyss_data)
 
     card_img.paste(frame, (0, 210), frame)
@@ -363,5 +369,5 @@ async def upload_abyss_record(
             "version": get_version(dynamic=True, waves_id=waves_id, char_info=abyss_record),
         }
     )
-    # logger.info(f"上传深渊记录: {abyss_item.model_dump()}")
+    # logger.info(f"上传深塔记录: {abyss_item.model_dump()}")
     push_item(QUEUE_ABYSS_RECORD, abyss_item.model_dump())

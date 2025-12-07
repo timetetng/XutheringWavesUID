@@ -165,7 +165,7 @@ async def get_draw_list(
 
     if page > 1:
         img_draw.text(
-            (1480, 80),
+            (1550, 60),
             f"第{page}/{max_page}页",
             GREY,
             waves_font_26,

@@ -72,11 +72,11 @@ ANN_CARD_PATH = OTHER_PATH / "ann_card"
 POKER_PATH = OTHER_PATH / "poker"
 
 # 基础别名文件路径
-ALIAS_PATH = MAP_ALIAS_PATH
-CUSTOM_CHAR_ALIAS_PATH = MAP_ALIAS_PATH / "char_alias.json"
-CUSTOM_SONATA_ALIAS_PATH = MAP_ALIAS_PATH / "sonata_alias.json"
-CUSTOM_WEAPON_ALIAS_PATH = MAP_ALIAS_PATH / "weapon_alias.json"
-CUSTOM_ECHO_ALIAS_PATH = MAP_ALIAS_PATH / "echo_alias.json"
+ALIAS_PATH = MAIN_PATH / "alias"
+CUSTOM_CHAR_ALIAS_PATH = ALIAS_PATH / "char_alias.json"
+CUSTOM_SONATA_ALIAS_PATH = ALIAS_PATH / "sonata_alias.json"
+CUSTOM_WEAPON_ALIAS_PATH = ALIAS_PATH / "weapon_alias.json"
+CUSTOM_ECHO_ALIAS_PATH = ALIAS_PATH / "echo_alias.json"
 
 
 def init_dir():

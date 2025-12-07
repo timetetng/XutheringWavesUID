@@ -11,9 +11,12 @@ from .draw_echo import draw_wiki_echo
 from .draw_list import draw_sonata_list, draw_weapon_list
 from .draw_weapon import draw_wiki_weapon
 from .guide import get_guide
+from .draw_tower import draw_tower_challenge_img, draw_slash_challenge_img
 
 sv_waves_guide = SV("鸣潮攻略")
 sv_waves_wiki = SV("鸣潮wiki")
+sv_waves_tower = SV("waves查询深塔信息", priority=10)
+sv_waves_slash_info = SV("waves查询海墟信息", priority=10)
 
 
 @sv_waves_guide.on_regex(
@@ -77,3 +80,51 @@ async def send_weapon_list(bot: Bot, ev: Event):
 @sv_waves_guide.on_regex(r".*套装(列表)?$", block=True)
 async def send_sonata_list(bot: Bot, ev: Event):
     await bot.send(await draw_sonata_list())
+
+
+@sv_waves_tower.on_regex(
+    r"^深塔信息(?:第)?(\d+)期?$|^深塔信息$|^深塔第(\d+)期$",
+    block=True,
+)
+async def send_tower_challenge_info(bot: Bot, ev: Event):
+    """查询深塔挑战信息"""
+
+    period = None
+    text = ev.text.strip()
+    match = re.search(r'(\d+)', text)
+    if match:
+        try:
+            period = int(match.group(1))
+        except ValueError:
+            pass
+
+    im = await draw_tower_challenge_img(ev, period)
+    if isinstance(im, str):
+        at_sender = True if ev.group_id else False
+        await bot.send(im, at_sender)
+    else:
+        await bot.send(im)
+
+
+@sv_waves_slash_info.on_regex(
+    r"^(?:海墟|冥海|无尽)信息(?:第)?(\d+)期?$|^(?:海墟|冥海|无尽)信息$|^(?:海墟|冥海|无尽)第(\d+)期$",
+    block=True,
+)
+async def send_slash_challenge_info(bot: Bot, ev: Event):
+    """查询海墟挑战信息"""
+
+    period = None
+    text = ev.text.strip()
+    match = re.search(r'(\d+)', text)
+    if match:
+        try:
+            period = int(match.group(1))
+        except ValueError:
+            pass
+
+    im = await draw_slash_challenge_img(ev, period)
+    if isinstance(im, str):
+        at_sender = True if ev.group_id else False
+        await bot.send(im, at_sender)
+    else:
+        await bot.send(im)

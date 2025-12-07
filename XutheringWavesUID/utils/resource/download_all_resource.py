@@ -24,6 +24,7 @@ from .RESOURCE_PATH import (
     MAP_CHAR_PATH,
     MAP_DETAIL_PATH,
     MAP_CHALLENGE_PATH,
+    MAP_ALIAS_PATH
 )
 
 import sys
@@ -97,10 +98,11 @@ async def download_all_resource():
             "resource/guide/XFM": XFM_GUIDE_PATH,
             f"resource/build/{PLATFORM}/waves_build": BUILD_PATH,
             f"resource/build/{PLATFORM}/map/waves_build": MAP_BUILD_PATH,
-            f"resource/map": MAP_PATH,
-            f"resource/map/character": MAP_CHAR_PATH,
-            f"resource/map/detail_json": MAP_DETAIL_PATH,
-            f"resource/map/detail_json/challenge": MAP_CHALLENGE_PATH
+            "resource/map": MAP_PATH,
+            "resource/map/character": MAP_CHAR_PATH,
+            "resource/map/detail_json": MAP_DETAIL_PATH,
+            "resource/map/detail_json/challenge": MAP_CHALLENGE_PATH,
+            "resource/map/alias": MAP_ALIAS_PATH
         },
         "https://ww.loping151.top",
         "小维资源"
