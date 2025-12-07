@@ -8,12 +8,15 @@ from gsuid_core.logger import logger
 
 from ..ascension.constant import fixed_name
 from .model import WeaponModel
+from ..resource.RESOURCE_PATH import MAP_DETAIL_PATH
 
-MAP_PATH = Path(__file__).parent.parent / "map/detail_json/weapon"
+MAP_PATH = MAP_DETAIL_PATH / "weapon"
 weapon_id_data = {}
+_data_loaded = False
 
 
 def read_weapon_json_files(directory):
+    global weapon_id_data
     files = directory.rglob("*.json")
 
     for file in files:
@@ -26,7 +29,17 @@ def read_weapon_json_files(directory):
             logger.exception(f"read_weapon_json_files load fail decoding {file}", e)
 
 
-read_weapon_json_files(MAP_PATH)
+def ensure_data_loaded(force: bool = False):
+    """确保武器数据已加载
+
+    Args:
+        force: 如果为 True，强制重新加载所有数据，即使已经加载过
+    """
+    global _data_loaded
+    if (_data_loaded and not force) or not MAP_PATH.exists():
+        return
+    read_weapon_json_files(MAP_PATH)
+    _data_loaded = True
 
 
 class WavesWeaponResult:
@@ -74,6 +87,7 @@ def get_weapon_detail(
     breach 突破
     resonLevel 精炼
     """
+    ensure_data_loaded()
     result = WavesWeaponResult()
     if str(weapon_id) not in weapon_id_data:
         return result
@@ -115,6 +129,7 @@ def get_weapon_detail(
 
 
 def get_weapon_id(weapon_name):
+    ensure_data_loaded()
     return next(
         (_id for _id, value in weapon_id_data.items() if value["name"] == weapon_name),
         None,
@@ -122,6 +137,7 @@ def get_weapon_id(weapon_name):
 
 
 def get_weapon_star(weapon_name) -> int:
+    ensure_data_loaded()
     weapon_id = get_weapon_id(weapon_name)
     if weapon_id is None:
         return 4
@@ -133,6 +149,7 @@ def get_weapon_star(weapon_name) -> int:
 
 
 def get_weapon_model(weapon_id: Union[int, str]) -> Optional[WeaponModel]:
+    ensure_data_loaded()
     if str(weapon_id) not in weapon_id_data:
         return None
     return WeaponModel(**weapon_id_data[str(weapon_id)])

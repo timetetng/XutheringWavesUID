@@ -20,6 +20,10 @@ from .RESOURCE_PATH import (
     XFM_GUIDE_PATH,
     BUILD_PATH,
     MAP_BUILD_PATH,
+    MAP_PATH,
+    MAP_CHAR_PATH,
+    MAP_DETAIL_PATH,
+    MAP_CHALLENGE_PATH,
 )
 
 import sys
@@ -93,18 +97,36 @@ async def download_all_resource():
             "resource/guide/XFM": XFM_GUIDE_PATH,
             f"resource/build/{PLATFORM}/waves_build": BUILD_PATH,
             f"resource/build/{PLATFORM}/map/waves_build": MAP_BUILD_PATH,
+            f"resource/map": MAP_PATH,
+            f"resource/map/character": MAP_CHAR_PATH,
+            f"resource/map/detail_json": MAP_DETAIL_PATH,
+            f"resource/map/detail_json/challenge": MAP_CHALLENGE_PATH
         },
-        "https://ww.loping151.top", 
-        "小维US"
+        "https://ww.loping151.top",
+        "小维资源"
     )
     
     from ..calculate import reload_calculate_module
     from ..safety import reload_safety_module
     from ..map.damage.damage import reload_damage_module
     from ..map.damage.register import reload_all_register
-    
+
+    # 强制加载所有 map 数据
+    from ..name_convert import ensure_data_loaded as ensure_name_convert_loaded
+    from ..ascension.char import ensure_data_loaded as ensure_char_loaded
+    from ..ascension.weapon import ensure_data_loaded as ensure_weapon_loaded
+    from ..ascension.echo import ensure_data_loaded as ensure_echo_loaded
+    from ..ascension.sonata import ensure_data_loaded as ensure_sonata_loaded
+
     # no async
     reload_calculate_module()
     reload_safety_module()
     reload_damage_module()
     reload_all_register()
+
+    # 在下载完成后强制加载所有数据
+    ensure_name_convert_loaded(force=True)
+    ensure_char_loaded(force=True)
+    ensure_weapon_loaded(force=True)
+    ensure_echo_loaded(force=True)
+    ensure_sonata_loaded(force=True)

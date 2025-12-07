@@ -3,7 +3,9 @@ from pathlib import Path
 
 import aiofiles
 
-CHAR_TEMPLATE_PATH = Path(__file__).parent.parent / "map/templata.json"
+from ..resource.RESOURCE_PATH import MAP_PATH
+
+CHAR_TEMPLATE_PATH = MAP_PATH / "templata.json"
 
 
 async def get_template_data():

@@ -8,12 +8,15 @@ from gsuid_core.logger import logger
 
 from ..ascension.constant import fixed_name, sum_percentages
 from .model import CharacterModel
+from ..resource.RESOURCE_PATH import MAP_DETAIL_PATH
 
-MAP_PATH = Path(__file__).parent.parent / "map/detail_json/char"
+MAP_PATH = MAP_DETAIL_PATH / "char"
 char_id_data = {}
+_data_loaded = False
 
 
 def read_char_json_files(directory):
+    global char_id_data
     files = directory.rglob("*.json")
 
     for file in files:
@@ -26,7 +29,17 @@ def read_char_json_files(directory):
             logger.exception(f"read_char_json_files load fail decoding {file}", e)
 
 
-read_char_json_files(MAP_PATH)
+def ensure_data_loaded(force: bool = False):
+    """确保角色数据已加载
+
+    Args:
+        force: 如果为 True，强制重新加载所有数据，即使已经加载过
+    """
+    global _data_loaded
+    if (_data_loaded and not force) or not MAP_PATH.exists():
+        return
+    read_char_json_files(MAP_PATH)
+    _data_loaded = True
 
 
 class WavesCharResult:
@@ -67,6 +80,7 @@ def get_char_detail(
     breach 突破
     resonLevel 精炼
     """
+    ensure_data_loaded()
     result = WavesCharResult()
     if str(char_id) not in char_id_data:
         logger.exception(f"get_char_detail char_id: {char_id} not found")
@@ -116,12 +130,14 @@ def get_char_detail2(role) -> WavesCharResult:
 
 
 def get_char_id(char_name):
+    ensure_data_loaded()
     return next(
         (_id for _id, value in char_id_data.items() if value["name"] == char_name), None
     )
 
 
 def get_char_model(char_id: Union[str, int]) -> Optional[CharacterModel]:
+    ensure_data_loaded()
     if str(char_id) not in char_id_data:
         return None
     return CharacterModel(**char_id_data[str(char_id)])

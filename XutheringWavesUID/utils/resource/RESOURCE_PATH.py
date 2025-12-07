@@ -48,10 +48,15 @@ WUHEN_GUIDE_PATH = GUIDE_PATH / "WuHen"
 # 巡游天国 攻略库
 XFM_GUIDE_PATH = GUIDE_PATH / "XFM"
 
-# 构建
+# 构建 和 详情文件
 BUILD_ROOT = Path(__file__).parent.parent
 BUILD_PATH = BUILD_ROOT / "waves_build"
+MAP_PATH = RESOURCE_PATH / "map"
+MAP_CHAR_PATH = RESOURCE_PATH / "map" / "character"
+MAP_DETAIL_PATH = RESOURCE_PATH / "map" / "detail_json"
+MAP_CHALLENGE_PATH = RESOURCE_PATH / "map" / "detail_json" / "challenge"
 MAP_BUILD_PATH = BUILD_ROOT / "map" / "waves_build"
+MAP_ALIAS_PATH = MAP_PATH / "alias"
 
 # 自定义背景图
 CUSTOM_CARD_PATH = MAIN_PATH / "custom_role_pile"
@@ -66,13 +71,12 @@ CHALLENGE_PATH = OTHER_PATH / "challenge"
 ANN_CARD_PATH = OTHER_PATH / "ann_card"
 POKER_PATH = OTHER_PATH / "poker"
 
-
-# 别名
-ALIAS_PATH = MAIN_PATH / "alias"
-CUSTOM_CHAR_ALIAS_PATH = ALIAS_PATH / "char_alias.json"
-CUSTOM_SONATA_ALIAS_PATH = ALIAS_PATH / "sonata_alias.json"
-CUSTOM_WEAPON_ALIAS_PATH = ALIAS_PATH / "weapon_alias.json"
-CUSTOM_ECHO_ALIAS_PATH = ALIAS_PATH / "echo_alias.json"
+# 基础别名文件路径
+ALIAS_PATH = MAP_ALIAS_PATH
+CUSTOM_CHAR_ALIAS_PATH = MAP_ALIAS_PATH / "char_alias.json"
+CUSTOM_SONATA_ALIAS_PATH = MAP_ALIAS_PATH / "sonata_alias.json"
+CUSTOM_WEAPON_ALIAS_PATH = MAP_ALIAS_PATH / "weapon_alias.json"
+CUSTOM_ECHO_ALIAS_PATH = MAP_ALIAS_PATH / "echo_alias.json"
 
 
 def init_dir():
@@ -101,7 +105,12 @@ def init_dir():
         OTHER_PATH,
         CALENDAR_PATH,
         ANN_CARD_PATH,
-        ALIAS_PATH,
+        MAP_BUILD_PATH,
+        MAP_PATH,
+        MAP_CHAR_PATH,
+        MAP_DETAIL_PATH,
+        MAP_CHALLENGE_PATH,
+        MAP_ALIAS_PATH,
         CUSTOM_MR_CARD_PATH,
         CUSTOM_MR_BG_PATH,
     ]:

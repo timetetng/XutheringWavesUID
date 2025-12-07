@@ -3,9 +3,8 @@ from pathlib import Path
 
 import aiofiles
 
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH, MAP_PATH
 
-MAP_PATH = Path(__file__).parent / "map"
 LIMIT_PATH = MAP_PATH / "1.json"
 
 
