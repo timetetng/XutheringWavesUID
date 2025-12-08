@@ -1,23 +1,18 @@
 import os
 import json
 import random
+from typing import Dict, List
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List
 
 import aiofiles
 from PIL import Image, ImageDraw
+
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
 from ..utils import hint
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import PREFIX
-from ..utils.api.model import AccountBaseInfo
-from ..utils.error_reply import WAVES_CODE_102
-from ..utils.resource.constant import NORMAL_LIST
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
 from ..utils.image import (
     GOLD,
     add_footer,
@@ -27,6 +22,10 @@ from ..utils.image import (
     get_square_weapon,
     cropped_square_avatar,
 )
+from ..utils.api.model import AccountBaseInfo
+from ..utils.waves_api import waves_api
+from ..utils.error_reply import WAVES_CODE_102
+from ..wutheringwaves_config import PREFIX
 from ..utils.fonts.waves_fonts import (
     waves_font_18,
     waves_font_20,
@@ -37,6 +36,8 @@ from ..utils.fonts.waves_fonts import (
     waves_font_32,
     waves_font_40,
 )
+from ..utils.resource.constant import NORMAL_LIST
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 HOMO_TAG = ["非到极致", "运气不好", "平稳保底", "小欧一把", "欧狗在此"]
@@ -84,7 +85,7 @@ async def draw_card_help():
             "抽卡链接具有有效期，请在有效期内尽快导入",
         ]
     )
-    
+
     yun = "\n".join(
         [
             "云游戏获取方式",
@@ -104,7 +105,7 @@ async def draw_card_help():
             "\n",
         ]
     )
-    
+
     ios = "\n".join(
         [
             "苹果手机获取方式",
@@ -117,7 +118,7 @@ async def draw_card_help():
             "\n",
         ]
     )
-    
+
     pc = "\n".join(
         [
             "PC获取方式",
@@ -215,13 +216,9 @@ async def get_gacha_stats(uid: str) -> Dict:
             else:
                 if gacha_name == "角色精准调谐":
                     if current_data["avg_up"] != 0:
-                        current_data["level"] = get_level_from_list(
-                            current_data["avg_up"], [74, 87, 99, 105, 120]
-                        )
+                        current_data["level"] = get_level_from_list(current_data["avg_up"], [74, 87, 99, 105, 120])
                     elif current_data["avg"] != 0:
-                        current_data["level"] = get_level_from_list(
-                            current_data["avg"], [53, 60, 68, 73, 75]
-                        )
+                        current_data["level"] = get_level_from_list(current_data["avg"], [53, 60, 68, 73, 75])
 
         # 返回转换后的统计数据
         stats_data = {}
@@ -328,9 +325,7 @@ async def draw_card(uid: str, ev: Event):
                 current_data["time_range"] = data["time"]
             if index == len(gacha_data) - 1:
                 time_1 = datetime.strptime(data["time"], "%Y-%m-%d %H:%M:%S")
-                time_2 = datetime.strptime(
-                    current_data["time_range"], "%Y-%m-%d %H:%M:%S"
-                )
+                time_2 = datetime.strptime(current_data["time_range"], "%Y-%m-%d %H:%M:%S")
                 current_data["all_time"] = (time_1 - time_2).total_seconds()
 
                 current_data["time_range"] += "~" + data["time"]
@@ -373,13 +368,9 @@ async def draw_card(uid: str, ev: Event):
         else:
             if gacha_name == "角色精准调谐":
                 if current_data["avg_up"] != "-":
-                    current_data["level"] = get_level_from_list(
-                        current_data["avg_up"], [74, 87, 99, 105, 120]
-                    )
+                    current_data["level"] = get_level_from_list(current_data["avg_up"], [74, 87, 99, 105, 120])
                 elif current_data["avg"] != "-":
-                    current_data["level"] = get_level_from_list(
-                        current_data["avg"], [53, 60, 68, 73, 75]
-                    )
+                    current_data["level"] = get_level_from_list(current_data["avg"], [53, 60, 68, 73, 75])
             elif gacha_name in [
                 "武器精准调谐",
                 "角色调谐（常驻池）",
@@ -387,14 +378,10 @@ async def draw_card(uid: str, ev: Event):
                 "新手自选唤取",
             ]:
                 if current_data["avg"] != "-":
-                    current_data["level"] = get_level_from_list(
-                        current_data["avg"], [45, 52, 59, 65, 70]
-                    )
+                    current_data["level"] = get_level_from_list(current_data["avg"], [45, 52, 59, 65, 70])
             elif gacha_name == "新手调谐":
                 if current_data["avg"] != "-":
-                    current_data["level"] = get_level_from_list(
-                        current_data["avg"], [10, 20, 30, 40, 45]
-                    )
+                    current_data["level"] = get_level_from_list(current_data["avg"], [10, 20, 30, 40, 45])
 
     # 保存抽卡统计信息到本地
     await save_gacha_stats(uid, total_data)
@@ -455,9 +442,7 @@ async def draw_card(uid: str, ev: Event):
         info_block = Image.new("RGBA", (137, 28), color=(255, 255, 255, 0))
         info_block_draw = ImageDraw.Draw(info_block)
         info_block_draw.rectangle([0, 0, 137, 28], fill=(0, 0, 0, int(0.6 * 255)))
-        info_block_draw.text(
-            (65, 12), f"{item['gacha_num']}抽", gcolor, waves_font_20, "mm"
-        )
+        info_block_draw.text((65, 12), f"{item['gacha_num']}抽", gcolor, waves_font_20, "mm")
 
         item_bg.paste(info_block, (15, 130), info_block)
 
@@ -501,9 +486,7 @@ async def draw_card(uid: str, ev: Event):
         title_draw.text((160, 178), avg_s, "white", waves_font_32, "mm")
         title_draw.text((300, 178), avg_up_s, "white", waves_font_32, "mm")
         title_draw.text((457, 178), total, "white", waves_font_32, "mm")
-        title_draw.text(
-            (110, 80), gacha_type_meta_rename[gacha_name], "white", waves_font_40, "lm"
-        )
+        title_draw.text((110, 80), gacha_type_meta_rename[gacha_name], "white", waves_font_40, "lm")
         title_draw.text((380, 87), "已", "white", waves_font_23, "rm")
         title_draw.text((410, 84), remain_s, "red", waves_font_40, "mm")
         title_draw.text((530, 87), "抽未出金", "white", waves_font_23, "rm")
@@ -553,14 +536,10 @@ async def draw_card(uid: str, ev: Event):
         newbie_bg_cp = newbie_bg.copy()
         newbie_bg_cp_draw = ImageDraw.Draw(newbie_bg_cp)
         newbie_bg_cp.paste(item_bg, (115, 220), item_bg)
-        newbie_bg_cp_draw.text(
-            (200, 160), gacha_type_meta_rename[gacha_name], "white", waves_font_40, "mm"
-        )
+        newbie_bg_cp_draw.text((200, 160), gacha_type_meta_rename[gacha_name], "white", waves_font_40, "mm")
         if gacha_data["time_range"]:
             time_range = (
-                gacha_data["time_range"].split("~")[1]
-                if "~" in gacha_data["time_range"]
-                else gacha_data["time_range"]
+                gacha_data["time_range"].split("~")[1] if "~" in gacha_data["time_range"] else gacha_data["time_range"]
             )
         else:
             time_range = "暂未抽过卡!"
@@ -639,12 +618,8 @@ async def draw_uid_avatar(uid, ev, card_img):
 
         base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")
         base_info_draw = ImageDraw.Draw(base_info_bg)
-        base_info_draw.text(
-            (275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm"
-        )
-        base_info_draw.text(
-            (226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm"
-        )
+        base_info_draw.text((275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm")
+        base_info_draw.text((226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm")
         base_info_bg = base_info_bg.resize((900, 450))
         card_img.alpha_composite(base_info_bg, (110, 30))
         #

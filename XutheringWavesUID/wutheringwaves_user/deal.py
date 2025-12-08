@@ -1,23 +1,19 @@
-from typing import List, Optional, Union
+from typing import List, Union, Optional
 
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 
 from ..utils.api.api import PGR_GAME_ID, WAVES_GAME_ID
 from ..utils.api.model import KuroWavesUserInfo
-from ..utils.api.request_util import PLATFORM_SOURCE
-from ..utils.database.models import WavesBind, WavesUser
-from ..utils.error_reply import ERROR_CODE, WAVES_CODE_103
 from ..utils.waves_api import waves_api
+from ..utils.error_reply import ERROR_CODE, WAVES_CODE_103
+from ..utils.database.models import WavesBind, WavesUser
+from ..utils.api.request_util import PLATFORM_SOURCE
 
 
 async def _fetch_roles_by_game(ck: str, did: str, game_id: int):
     roles = await waves_api.get_kuro_role_list(ck, did, game_id=game_id)
-    if (
-        not roles.success
-        or not roles.data
-        or not isinstance(roles.data, list)
-    ):
+    if not roles.success or not roles.data or not isinstance(roles.data, list):
         return None, roles.throw_msg()
     return roles.data, None
 
@@ -40,9 +36,7 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
             if data.gameId != WAVES_GAME_ID:
                 continue
 
-            user = await WavesUser.get_user_by_attr(
-                ev.user_id, ev.bot_id, "uid", data.roleId
-            )
+            user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "uid", data.roleId)
 
             succ, bat = await waves_api.get_request_token(
                 data.roleId,
@@ -87,9 +81,7 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
                 update_data={"bat": bat, "did": did},
             )
 
-            res = await WavesBind.insert_waves_uid(
-                ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9
-            )
+            res = await WavesBind.insert_waves_uid(ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9)
             if res == 0 or res == -2:
                 await WavesBind.switch_uid_by_game(ev.user_id, ev.bot_id, data.roleId)
 
@@ -105,9 +97,7 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
             data = KuroWavesUserInfo.model_validate(pgr_role)
             if data.gameId != PGR_GAME_ID:
                 continue
-            pgr_user = await WavesUser.get_user_by_attr(
-                ev.user_id, ev.bot_id, "pgr_uid", data.roleId
-            )
+            pgr_user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "pgr_uid", data.roleId)
             if pgr_user:
                 await WavesUser.update_data_by_data(
                     select_data={
@@ -143,9 +133,7 @@ async def add_cookie(ev: Event, ck: str, did: str) -> str:
                 game_name="pgr",
             )
             if res == 0 or res == -2:
-                await WavesBind.switch_uid_by_game(
-                    ev.user_id, ev.bot_id, data.roleId, game_name="pgr"
-                )
+                await WavesBind.switch_uid_by_game(ev.user_id, ev.bot_id, data.roleId, game_name="pgr")
             pgr_list.append({"名字": data.roleName, "特征码": data.roleId})
 
     if len(role_list) == 0 and len(pgr_list) == 0:
@@ -186,13 +174,9 @@ async def refresh_bind(ev: Event) -> str:
                 data = KuroWavesUserInfo.model_validate(role)
                 if data.gameId != WAVES_GAME_ID:
                     continue
-                res = await WavesBind.insert_waves_uid(
-                    ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9
-                )
+                res = await WavesBind.insert_waves_uid(ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9)
                 if res == 0 or res == -2:
-                    await WavesBind.switch_uid_by_game(
-                        ev.user_id, ev.bot_id, data.roleId
-                    )
+                    await WavesBind.switch_uid_by_game(ev.user_id, ev.bot_id, data.roleId)
                 waves_msg.append(f"[鸣潮]已刷新特征码【{data.roleId}】")
 
         if pgr_roles:
@@ -209,9 +193,7 @@ async def refresh_bind(ev: Event) -> str:
                     game_name="pgr",
                 )
                 if res == 0 or res == -2:
-                    await WavesBind.switch_uid_by_game(
-                        ev.user_id, ev.bot_id, data.roleId, game_name="pgr"
-                    )
+                    await WavesBind.switch_uid_by_game(ev.user_id, ev.bot_id, data.roleId, game_name="pgr")
                 pgr_msg.append(f"[战双]已刷新特征码【{data.roleId}】")
 
         if waves_msg or pgr_msg:
@@ -239,9 +221,7 @@ async def get_cookie(bot: Bot, ev: Event) -> Union[List[str], str]:
 
     msg = []
     for uid in uid_list:
-        waves_user: Optional[WavesUser] = await WavesUser.select_waves_user(
-            uid, ev.user_id, ev.bot_id
-        )
+        waves_user: Optional[WavesUser] = await WavesUser.select_waves_user(uid, ev.user_id, ev.bot_id)
         if not waves_user:
             continue
 
@@ -251,10 +231,10 @@ async def get_cookie(bot: Bot, ev: Event) -> Union[List[str], str]:
         msg.append(f"鸣潮uid: {uid} 的 token 和 did")
         msg.append(f"添加token {waves_user.cookie}, {waves_user.did}")
         msg.append("--------------------------------")
-        
+
     if not msg:
         return "您当前未绑定token或者token已全部失效\n"
-    
+
     msg.append("直接复制并加上前缀即可用于token登录")
 
     return msg

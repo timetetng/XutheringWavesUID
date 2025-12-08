@@ -1,27 +1,27 @@
 import time
-from datetime import datetime
 from typing import List, Union
+from datetime import datetime
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 
 from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import (
+    easy_paste,
     draw_text_by_line,
     easy_alpha_composite,
-    easy_paste,
 )
 
+from ..utils.image import add_footer, pic_download_from_url
+from ..utils.waves_api import waves_api
+from ..wutheringwaves_config import PREFIX
 from ..utils.fonts.waves_fonts import (
     ww_font_18,
     ww_font_20,
     ww_font_24,
     ww_font_26,
 )
-from ..utils.image import add_footer, pic_download_from_url
 from ..utils.resource.RESOURCE_PATH import ANN_CARD_PATH
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import PREFIX
 
 
 async def ann_list_card() -> bytes:
@@ -44,13 +44,7 @@ async def ann_list_card() -> bytes:
 
     # 计算高度
     total_items = sum(len(items) for items in grouped.values())
-    h = (
-        H_HEADER
-        + 50
-        + len(grouped) * (H_SECTION + 30)
-        + total_items * H_ITEM
-        + H_FOOTER
-    )
+    h = H_HEADER + 50 + len(grouped) * (H_SECTION + 30) + total_items * H_ITEM + H_FOOTER
 
     bg = Image.new("RGBA", (W, h), "#f8f9fa")
 
@@ -108,17 +102,13 @@ async def create_item_card(w, h, info, color, sep):
 
     # ID标签
     id_str = str(info.get("id", ""))
-    tw = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), id_str, ww_font_18)[
-        2
-    ]
+    tw = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), id_str, ww_font_18)[2]
     id_w = int(tw + 16)
     id_bg = Image.new("RGBA", (id_w, 24), color)
     mask = Image.new("L", (id_w, 24), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, id_w, 24], 12, 255)
     id_bg.putalpha(mask)
-    ImageDraw.Draw(id_bg).text(
-        (id_w / 2, 12), id_str, "#ffffff", ww_font_18, anchor="mm"
-    )
+    ImageDraw.Draw(id_bg).text((id_w / 2, 12), id_str, "#ffffff", ww_font_18, anchor="mm")
     easy_paste(bg, id_bg, (15, 15))
 
     # 标题
@@ -130,9 +120,7 @@ async def create_item_card(w, h, info, color, sep):
     for i, line in enumerate(lines[:2]):
         if i == 1 and len(lines) > 2:
             line = line[:-3] + "..."
-        draw_text_by_line(
-            bg, (title_x, 18 + i * 24), line, ww_font_20, "#1c1c1e", max_w
-        )
+        draw_text_by_line(bg, (title_x, 18 + i * 24), line, ww_font_20, "#1c1c1e", max_w)
 
     # 日期
     date = format_date(info.get("publishTime", 0))
@@ -214,11 +202,7 @@ async def ann_batch_card(post_content: List, drow_height: float) -> bytes:
             for duanluo, line_count in drow_duanluo:
                 draw.text((x, y), duanluo, fill=(0, 0, 0), font=ww_font_26)
                 y += drow_line_height * line_count + 30
-        elif (
-            temp["contentType"] == 2
-            and "url" in temp
-            and temp["url"].endswith(("jpg", "png", "jpeg", "webp"))
-        ):
+        elif temp["contentType"] == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg", "webp")):
             img = await pic_download_from_url(ANN_CARD_PATH, temp["url"])
             img_x = 0
             if img.width > im.width:
@@ -243,9 +227,7 @@ async def ann_batch_card(post_content: List, drow_height: float) -> bytes:
     return await convert_img(ImageOps.expand(im, padding, "#f9f6f2"))
 
 
-async def ann_detail_card(
-    ann_id: int, is_check_time=False
-) -> Union[bytes, str, List[bytes]]:
+async def ann_detail_card(ann_id: int, is_check_time=False) -> Union[bytes, str, List[bytes]]:
     ann_list = await waves_api.get_ann_list(True)
     if not ann_list:
         raise Exception("获取游戏公告失败,请检查接口是否正常")
@@ -261,9 +243,7 @@ async def ann_detail_card(
     if is_check_time:
         post_time = format_post_time(res["postTime"])
         now_time = int(time.time())
-        logger.debug(
-            f"公告id: {ann_id}, post_time: {post_time}, now_time: {now_time}, delta: {now_time-post_time}"
-        )
+        logger.debug(f"公告id: {ann_id}, post_time: {post_time}, now_time: {now_time}, delta: {now_time - post_time}")
         if post_time < now_time - 86400:
             return "该公告已过期"
 
@@ -293,11 +273,7 @@ async def ann_detail_card(
                 x_drow_height,
             ) = split_text(content)
             drow_height += x_drow_height + 30
-        elif (
-            content_type == 2
-            and "url" in temp
-            and temp["url"].endswith(("jpg", "png", "jpeg", "webp"))
-        ):
+        elif content_type == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg", "webp")):
             # 图片
             _size = (temp["imgWidth"], temp["imgHeight"])
             img = await pic_download_from_url(ANN_CARD_PATH, temp["url"])
@@ -315,8 +291,9 @@ async def ann_detail_card(
             drow_height = 0
             imgs.append(img)
     else:
-        img = await ann_batch_card(post_content[index_start:index_end], drow_height)
-        imgs.append(img)
+        if index_end > index_start:
+            img = await ann_batch_card(post_content[index_start:index_end], drow_height)
+            imgs.append(img)
 
     return imgs
 

@@ -3,9 +3,9 @@ from typing import Any, Dict
 
 import aiohttp
 
-from ..captcha.errors import CaptchaVerifyError
 from . import register_solver
 from .base import RemoteCaptchaSolver
+from ..captcha.errors import CaptchaVerifyError
 
 # ttorc 只是作为参考
 # https://www.kancloud.cn/ttorc/ttorc/3119237
@@ -40,7 +40,6 @@ class TtorcCaptchaSolver(RemoteCaptchaSolver):
         return "N/A"
 
     async def solve(self) -> Dict[str, Any]:
-
         # https://www.kancloud.cn/ttorc/ttorc/3119239
         params = {
             "appkey": self._appkey,

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Union, Optional
 
 from ...utils.damage.damage import DamageAttribute
 
@@ -55,9 +55,7 @@ class WeaponAbstract(object):
             get_weapon_detail,
         )
 
-        weapon_detail: WavesWeaponResult = get_weapon_detail(
-            weapon_id, weapon_level, weapon_breach, weapon_reson_level
-        )
+        weapon_detail: WavesWeaponResult = get_weapon_detail(weapon_id, weapon_level, weapon_breach, weapon_reson_level)
         self.weapon_id = weapon_id
         self.weapon_level = weapon_level
         self.weapon_breach = weapon_breach

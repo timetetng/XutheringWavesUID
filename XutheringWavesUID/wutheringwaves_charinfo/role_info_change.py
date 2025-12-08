@@ -3,21 +3,20 @@ from typing import Any, Dict, List, Optional
 
 from gsuid_core.logger import logger
 
-from ..utils.api.model import EquipPhantomData, RoleDetailData
-from ..utils.api.model_other import EnemyDetailData
-from ..utils.ascension.sonata import WavesSonataResult, get_sonata_detail
-from ..utils.ascension.weapon import WavesWeaponResult, get_weapon_detail
-from ..utils.char_info_utils import get_all_role_detail_info_list
+from ..utils.api.model import RoleDetailData, EquipPhantomData
+from ..utils.waves_api import waves_api
 from ..utils.name_convert import (
+    easy_id_to_name,
     alias_to_sonata_name,
     alias_to_weapon_name,
     char_name_to_char_id,
-    easy_id_to_name,
     weapon_name_to_weapon_id,
 )
-from ..utils.resource.constant import SONATA_FIRST_ID, SPECIAL_CHAR
-from ..utils.waves_api import waves_api
-from ..utils.char_info_utils import PATTERN
+from ..utils.api.model_other import EnemyDetailData
+from ..utils.char_info_utils import PATTERN, get_all_role_detail_info_list
+from ..utils.ascension.sonata import WavesSonataResult, get_sonata_detail
+from ..utils.ascension.weapon import WavesWeaponResult, get_weapon_detail
+from ..utils.resource.constant import SPECIAL_CHAR, SONATA_FIRST_ID
 
 phantom_main_value = [
     {"name": "攻击", "values": ["18%", "30%", "33%"]},
@@ -32,9 +31,7 @@ phantom_main_value = [
 phantom_main_value_map = {i["name"]: i["values"] for i in phantom_main_value}
 
 
-async def get_remote_role_detail_info(
-    find_char_id: List[str], waves_id, ck
-) -> Optional[RoleDetailData]:
+async def get_remote_role_detail_info(find_char_id: List[str], waves_id, ck) -> Optional[RoleDetailData]:
     role_detail_info = None
 
     gen_temp = await get_all_role_detail_info_list(waves_id)  # type: ignore
@@ -474,9 +471,7 @@ class ChangeParser:
                     compressed_commands.append(formal_name + str(amount))
 
             self.rr.sonata.sonataName.extend(sonata_names)
-            matched_list.append(
-                f"换{self.rr.sonata.PREFIX_RE[0]} {' '.join(compressed_commands)}"
-            )
+            matched_list.append(f"换{self.rr.sonata.PREFIX_RE[0]} {' '.join(compressed_commands)}")
         return matched_list
 
     def parse_phantom(self, cont: str) -> list[str]:
@@ -564,9 +559,7 @@ async def change_role_detail(
 
     # 武器
     if parserResult.weapon.weaponId:
-        weapon_detail: WavesWeaponResult | None = get_weapon_detail(
-            parserResult.weapon.weaponId, 90
-        )
+        weapon_detail: WavesWeaponResult | None = get_weapon_detail(parserResult.weapon.weaponId, 90)
         if weapon_detail:
             weapon = role_detail.weaponData.weapon
             if weapon.weaponType == weapon_detail.type:
@@ -652,26 +645,16 @@ async def change_role_detail(
         for sonataName in parserResult.sonata.sonataName:
             sonata_result: WavesSonataResult = get_sonata_detail(sonataName)
             sonata_results.append(sonata_result)
-        if (
-            sonata_results
-            and role_detail.phantomData
-            and role_detail.phantomData.equipPhantomList
-        ):
+        if sonata_results and role_detail.phantomData and role_detail.phantomData.equipPhantomList:
             for index, ep in enumerate(role_detail.phantomData.equipPhantomList):
                 if not ep:
                     continue
                 if index >= len(sonata_results):
                     break
                 ep.fetterDetail.name = sonata_results[index].name
-                if index == 0 and ep.phantomProp.phantomId not in SONATA_FIRST_ID.get(
-                    sonata_results[index].name, []
-                ):
-                    ep.phantomProp.phantomId = SONATA_FIRST_ID.get(
-                        sonata_results[index].name, []
-                    )[0]
-                    ep.phantomProp.name = easy_id_to_name(
-                        str(ep.phantomProp.phantomId), ep.phantomProp.name
-                    )
+                if index == 0 and ep.phantomProp.phantomId not in SONATA_FIRST_ID.get(sonata_results[index].name, []):
+                    ep.phantomProp.phantomId = SONATA_FIRST_ID.get(sonata_results[index].name, [])[0]
+                    ep.phantomProp.name = easy_id_to_name(str(ep.phantomProp.phantomId), ep.phantomProp.name)
 
     # 敌人
     if parserResult.enemy.enemyResistance:
@@ -682,17 +665,13 @@ async def change_role_detail(
     return role_detail, parser.get_matched_content()
 
 
-async def change_role_phantom(
-    waves_id: str, ck: str, role_detail: RoleDetailData, phantom: PhantomInfo
-):
+async def change_role_phantom(waves_id: str, ck: str, role_detail: RoleDetailData, phantom: PhantomInfo):
     parserCharName = phantom.charName
     parserWavesUid = phantom.uid
     parserPositions = phantom.positions
     parserToPositions = phantom.toPositions
 
-    logger.debug(
-        f"change_role_phantom {parserWavesUid}{parserCharName}{parserPositions}到{parserToPositions}"
-    )
+    logger.debug(f"change_role_phantom {parserWavesUid}{parserCharName}{parserPositions}到{parserToPositions}")
 
     char_id = char_name_to_char_id(parserCharName) if parserCharName else None
     find_char_id = []
@@ -706,16 +685,11 @@ async def change_role_phantom(
     if not find_char_id:
         return
 
-    remote_role_detail_info = await get_remote_role_detail_info(
-        find_char_id, waves_id, ck
-    )
+    remote_role_detail_info = await get_remote_role_detail_info(find_char_id, waves_id, ck)
     if not remote_role_detail_info:
         return
 
-    if (
-        not remote_role_detail_info.phantomData
-        or not remote_role_detail_info.phantomData.equipPhantomList
-    ):
+    if not remote_role_detail_info.phantomData or not remote_role_detail_info.phantomData.equipPhantomList:
         return
 
     if not parserPositions or not parserToPositions:
@@ -730,9 +704,7 @@ async def change_role_phantom(
             )
 
         for parserPosition, parserToPosition in zip(parserPositions, parserToPositions):
-            new = remote_role_detail_info.phantomData.equipPhantomList[
-                int(parserPosition) - 1
-            ]
+            new = remote_role_detail_info.phantomData.equipPhantomList[int(parserPosition) - 1]
             newCost = 0
             if new:
                 newCost = new.cost

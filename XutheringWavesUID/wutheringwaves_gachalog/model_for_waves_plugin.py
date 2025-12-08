@@ -1,5 +1,5 @@
-from datetime import datetime
 from typing import List
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -66,9 +66,7 @@ class WavesPluginGacha(BaseModel):
 
     def turn_wwuid_gacha(self) -> WWUIDGacha:
         export_timestamp = int(self.info.export_timestamp / 1000)
-        export_time = datetime.fromtimestamp(export_timestamp).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        export_time = datetime.fromtimestamp(export_timestamp).strftime("%Y-%m-%d %H:%M:%S")
         return WWUIDGacha(
             info=WWUIDGachaInfo(
                 export_time=export_time,
@@ -80,9 +78,7 @@ class WavesPluginGacha(BaseModel):
             ),
             list=[
                 WWUIDGachaItem(
-                    cardPoolType=turn_kuro_gacha_type.get(
-                        item.gacha_type, item.gacha_type
-                    ),
+                    cardPoolType=turn_kuro_gacha_type.get(item.gacha_type, item.gacha_type),
                     resourceId=int(item.item_id),
                     qualityLevel=int(item.rank_type),
                     resourceType=item.item_type,

@@ -1,21 +1,37 @@
 import time
-from pathlib import Path
 from typing import List, Union
+from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageEnhance
 
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
-from ..utils.api.model import AccountBaseInfo, RoleDetailData
-from ..utils.button import WavesButton
+from ..utils.hint import error_reply
+from ..utils.util import async_func_lock
 from ..utils.cache import TimedCache
-from ..utils.char_info_utils import get_all_role_detail_info_list
-from ..utils.database.models import WavesBind
+from ..utils.image import (
+    RED,
+    GOLD,
+    GREY,
+    CHAIN_COLOR,
+    add_footer,
+    get_star_bg,
+    get_square_avatar,
+    draw_text_with_shadow,
+    get_random_share_bg_path,
+)
+from ..utils.button import WavesButton
+from ..utils.api.model import RoleDetailData, AccountBaseInfo
+from ..utils.imagetool import draw_pic_with_ring
+from ..utils.waves_api import waves_api
 from ..utils.error_reply import WAVES_CODE_102
 from ..utils.expression_ctx import WavesCharRank, get_waves_char_rank
+from ..utils.char_info_utils import get_all_role_detail_info_list
+from ..utils.database.models import WavesBind
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..utils.fonts.waves_fonts import (
     waves_font_25,
     waves_font_26,
@@ -24,24 +40,8 @@ from ..utils.fonts.waves_fonts import (
     waves_font_42,
     waves_font_60,
 )
-from ..utils.hint import error_reply
-from ..utils.image import (
-    CHAIN_COLOR,
-    GOLD,
-    GREY,
-    RED,
-    add_footer,
-    draw_text_with_shadow,
-    get_random_share_bg_path,
-    get_square_avatar,
-    get_star_bg,
-)
-from ..utils.imagetool import draw_pic_with_ring
-from ..utils.refresh_char_detail import refresh_char
 from ..utils.resource.constant import NAME_ALIAS, SPECIAL_CHAR_NAME
-from ..utils.util import async_func_lock
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
+from ..utils.refresh_char_detail import refresh_char
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -130,9 +130,7 @@ async def get_refresh_role_img(width: int, height: int):
     )
 
     # 添加内部渐变效果
-    inner_panel = Image.new(
-        "RGBA", (char_panel_width - 20, char_panel_height - 20), (0, 0, 0, 0)
-    )
+    inner_panel = Image.new("RGBA", (char_panel_width - 20, char_panel_height - 20), (0, 0, 0, 0))
     inner_panel_draw = ImageDraw.Draw(inner_panel)
     inner_panel_draw.rounded_rectangle(
         [(0, 0), (char_panel_width - 20, char_panel_height - 20)],
@@ -170,9 +168,7 @@ async def draw_refresh_char_detail_img(
         return account_info.throw_msg()
     account_info = AccountBaseInfo.model_validate(account_info.data)
     # 更新group id
-    await WavesBind.insert_waves_uid(
-        user_id, ev.bot_id, uid, ev.group_id, lenth_limit=9
-    )
+    await WavesBind.insert_waves_uid(user_id, ev.bot_id, uid, ev.group_id, lenth_limit=9)
 
     waves_map = {"refresh_update": {}, "refresh_unchanged": {}}
     if ev.command == "面板":
@@ -181,9 +177,7 @@ async def draw_refresh_char_detail_img(
             return "暂无面板数据"
         waves_map = {
             "refresh_update": {},
-            "refresh_unchanged": {
-                i.role.roleId: i.model_dump() for i in all_waves_datas
-            },
+            "refresh_unchanged": {i.role.roleId: i.model_dump() for i in all_waves_datas},
         }
     else:
         waves_datas = await refresh_char(
@@ -199,9 +193,7 @@ async def draw_refresh_char_detail_img(
             return waves_datas
 
     role_detail_list = [
-        RoleDetailData(**r)
-        for key in ["refresh_update", "refresh_unchanged"]
-        for r in waves_map[key].values()
+        RoleDetailData(**r) for key in ["refresh_update", "refresh_unchanged"] for r in waves_map[key].values()
     ]
 
     # 总角色个数
@@ -229,13 +221,9 @@ async def draw_refresh_char_detail_img(
     title3 = "来查询该角色的具体面板"
     info_block = Image.new("RGBA", (980, 50), color=(255, 255, 255, 0))
     info_block_draw = ImageDraw.Draw(info_block)
-    info_block_draw.rounded_rectangle(
-        [0, 0, 980, 50], radius=15, fill=(128, 128, 128, int(0.3 * 255))
-    )
+    info_block_draw.rounded_rectangle([0, 0, 980, 50], radius=15, fill=(128, 128, 128, int(0.3 * 255)))
     info_block_draw.text((50, 24), f"{title}", GREY, waves_font_30, "lm")
-    info_block_draw.text(
-        (50 + len(title) * 28 + 20, 24), f"{title2}", (255, 180, 0), waves_font_30, "lm"
-    )
+    info_block_draw.text((50 + len(title) * 28 + 20, 24), f"{title2}", (255, 180, 0), waves_font_30, "lm")
     info_block_draw.text(
         (50 + len(title) * 28 + 20 + len(title2) * 28 + 10, 24),
         f"{title3}",
@@ -284,12 +272,8 @@ async def draw_refresh_char_detail_img(
     # 基础信息 名字 特征码
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")
     base_info_draw = ImageDraw.Draw(base_info_bg)
-    base_info_draw.text(
-        (275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm"
-    )
-    base_info_draw.text(
-        (226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm"
-    )
+    base_info_draw.text((275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm")
+    base_info_draw.text((226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm")
     img.paste(base_info_bg, (15, 20), base_info_bg)
 
     # 头像 头像环
@@ -302,14 +286,10 @@ async def draw_refresh_char_detail_img(
         title_bar = Image.open(TEXT_PATH / "title_bar.png")
         title_bar_draw = ImageDraw.Draw(title_bar)
         title_bar_draw.text((660, 125), "账号等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text(
-            (660, 78), f"Lv.{account_info.level}", "white", waves_font_42, "mm"
-        )
+        title_bar_draw.text((660, 78), f"Lv.{account_info.level}", "white", waves_font_42, "mm")
 
         title_bar_draw.text((810, 125), "世界等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text(
-            (810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm"
-        )
+        title_bar_draw.text((810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm")
         img.paste(title_bar, (-20, 70), title_bar)
 
     # bar
@@ -370,9 +350,7 @@ async def draw_pic(char_rank: WavesCharRank, isUpdate=False):
     info_block_draw = ImageDraw.Draw(info_block)
     fill = CHAIN_COLOR[char_rank.chain] + (int(0.9 * 255),)
     info_block_draw.rounded_rectangle([0, 0, 80, 40], radius=5, fill=fill)
-    info_block_draw.text(
-        (12, 20), f"{char_rank.chainName}", "white", waves_font_30, "lm"
-    )
+    info_block_draw.text((12, 20), f"{char_rank.chainName}", "white", waves_font_30, "lm")
     img.alpha_composite(info_block, (200, 15))
 
     # 评分

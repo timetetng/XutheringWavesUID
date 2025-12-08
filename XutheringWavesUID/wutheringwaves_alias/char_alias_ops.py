@@ -6,7 +6,6 @@ from gsuid_core.bot import msgjson
 from ..utils.name_convert import (
     alias_to_char_name_list,
     alias_to_char_name_optional,
-    ensure_data_loaded,
 )
 from ..utils.resource.RESOURCE_PATH import CUSTOM_CHAR_ALIAS_PATH
 

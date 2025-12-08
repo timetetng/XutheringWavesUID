@@ -1,80 +1,79 @@
-import asyncio
-import inspect
 import json
-import os
 import random
 import string
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+import asyncio
+import inspect
+from typing import Any, Dict, List, Union, Literal, Mapping, Optional
 
 import aiohttp
 from aiohttp import ClientTimeout, ContentTypeError
 
 from gsuid_core.logger import logger
 
-from ...utils.database.models import WavesUser
-from ...wutheringwaves_config import WutheringWavesConfig
-from ..error_reply import WAVES_CODE_999
-from ..util import timed_async_cache
-from ..resource.RESOURCE_PATH import CACHE_PATH
 from .api import (
-    ANN_CONTENT_URL,
+    LOGIN_URL,
+    SERVER_ID,
+    REFRESH_URL,
     ANN_LIST_URL,
     BASE_DATA_URL,
-    BATCH_ROLE_COST,
-    CALABASH_DATA_URL,
-    CALCULATOR_REFRESH_DATA_URL,
-    CHALLENGE_DATA_URL,
-    EXPLORE_DATA_URL,
     GACHA_LOG_URL,
-    GACHA_NET_LOG_URL,
-    WAVES_GAME_ID,
     LOGIN_LOG_URL,
-    LOGIN_URL,
-    MONTH_LIST_URL,
-    MORE_ACTIVITY_URL,
-    MR_REFRESH_URL,
-    NET_SERVER_ID_MAP,
-    ONLINE_LIST_PHANTOM,
-    ONLINE_LIST_ROLE,
-    ONLINE_LIST_WEAPON,
-    PERIOD_LIST_URL,
-    QUERY_OWNED_ROLE,
-    REFRESH_URL,
     REQUEST_TOKEN,
-    ROLE_CULTIVATE_STATUS,
     ROLE_DATA_URL,
-    ROLE_DETAIL_URL,
     ROLE_LIST_URL,
-    SERVER_ID,
     SERVER_ID_NET,
-    SLASH_DETAIL_URL,
-    SLASH_INDEX_URL,
-    TOWER_DETAIL_URL,
-    TOWER_INDEX_URL,
-    VERSION_LIST_URL,
+    WAVES_GAME_ID,
     WEEK_LIST_URL,
-    WIKI_DETAIL_URL,
-    WIKI_ENTRY_DETAIL_URL,
     WIKI_HOME_URL,
     WIKI_TREE_URL,
+    MONTH_LIST_URL,
+    MR_REFRESH_URL,
+    ANN_CONTENT_URL,
+    BATCH_ROLE_COST,
+    PERIOD_LIST_URL,
+    ROLE_DETAIL_URL,
+    SLASH_INDEX_URL,
+    TOWER_INDEX_URL,
+    WIKI_DETAIL_URL,
+    EXPLORE_DATA_URL,
+    ONLINE_LIST_ROLE,
+    QUERY_OWNED_ROLE,
+    SLASH_DETAIL_URL,
+    TOWER_DETAIL_URL,
+    VERSION_LIST_URL,
+    CALABASH_DATA_URL,
+    GACHA_NET_LOG_URL,
+    MORE_ACTIVITY_URL,
+    NET_SERVER_ID_MAP,
+    CHALLENGE_DATA_URL,
+    ONLINE_LIST_WEAPON,
+    ONLINE_LIST_PHANTOM,
+    ROLE_CULTIVATE_STATUS,
+    WIKI_ENTRY_DETAIL_URL,
+    CALCULATOR_REFRESH_DATA_URL,
     get_local_proxy_url,
     get_need_proxy_func,
 )
+from ..util import timed_async_cache
 from .captcha import get_solver
+from ..error_reply import WAVES_CODE_999
 from .captcha.base import CaptchaResult
-from .captcha.errors import CaptchaError
 from .request_util import (
     KURO_VERSION,
     KuroApiResp,
     get_base_header,
     get_community_header,
 )
+from .captcha.errors import CaptchaError
+from ...utils.database.models import WavesUser
+from ...wutheringwaves_config import WutheringWavesConfig
+from ..resource.RESOURCE_PATH import CACHE_PATH
 
 
 def generate_random_jwt_token() -> str:
     chars = string.ascii_letters + string.digits
-    payload = ''.join(random.choice(chars) for _ in range(58))
-    signature = ''.join(random.choice(chars) for _ in range(43))
+    payload = "".join(random.choice(chars) for _ in range(58))
+    signature = "".join(random.choice(chars) for _ in range(43))
     return f"eyJhbGciOiJIUzI1NiJ9.{payload}.{signature}"
 
 
@@ -123,9 +122,7 @@ class WavesApi:
         return SERVER_ID
 
     async def refresh_bat_token(self, waves_user: WavesUser):
-        success, access_token = await self.get_request_token(
-            waves_user.uid, waves_user.cookie, waves_user.did
-        )
+        success, access_token = await self.get_request_token(waves_user.uid, waves_user.cookie, waves_user.did)
         if not success:
             return waves_user
 
@@ -140,9 +137,7 @@ class WavesApi:
         )
         return waves_user
 
-    async def get_used_headers(
-        self, cookie: str, uid: str, needToken=False
-    ) -> Dict[str, Any]:
+    async def get_used_headers(self, cookie: str, uid: str, needToken=False) -> Dict[str, Any]:
         headers = {
             # "token": cookie,
             "did": "",
@@ -175,10 +170,7 @@ class WavesApi:
             # 兜底
             return False, generate_random_jwt_token()
 
-
-    async def get_self_waves_ck(
-        self, uid: str, user_id: str, bot_id: str
-    ) -> Optional[str]:
+    async def get_self_waves_ck(self, uid: str, user_id: str, bot_id: str) -> Optional[str]:
         # 返回空串 表示绑定已失效
         waves_user = await WavesUser.select_waves_user(uid, user_id, bot_id)
         if not waves_user or not waves_user.cookie:
@@ -249,14 +241,10 @@ class WavesApi:
 
         return await self._waves_request(ROLE_LIST_URL, "POST", header, data=data)
 
-    async def get_daily_info(
-        self, roleId: str, token: str, gameId: Union[str, int] = WAVES_GAME_ID
-    ):
+    async def get_daily_info(self, roleId: str, token: str, gameId: Union[str, int] = WAVES_GAME_ID):
         """每日"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         data = {
             "type": "1",
@@ -272,9 +260,7 @@ class WavesApi:
             data=data,
         )
 
-    async def refresh_data(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def refresh_data(self, roleId: str, token: str, serverId: Optional[str] = None):
         """刷新数据"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -301,9 +287,7 @@ class WavesApi:
         data = {}
         return await self._waves_request(LOGIN_LOG_URL, "POST", header, data=data)
 
-    async def get_base_info(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_base_info(self, roleId: str, token: str, serverId: Optional[str] = None):
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
         header.update(used_headers)
@@ -329,9 +313,7 @@ class WavesApi:
             info = await self._waves_request(BASE_DATA_URL, "POST", header, data=data)
         return info
 
-    async def get_role_info(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_role_info(self, roleId: str, token: str, serverId: Optional[str] = None):
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
         header.update(used_headers)
@@ -369,9 +351,7 @@ class WavesApi:
         data = {"catalogueId": catalogueId, "limit": 1000}
         return await self._waves_request(WIKI_DETAIL_URL, "POST", header, data=data)
 
-    async def get_role_detail_info(
-        self, charId: str, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_role_detail_info(self, charId: str, roleId: str, token: str, serverId: Optional[str] = None):
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
         header.update(used_headers)
@@ -400,9 +380,7 @@ class WavesApi:
             role_detail = await self._waves_request(ROLE_DETAIL_URL, "POST", header, data=data)
         return role_detail
 
-    async def get_calabash_data(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_calabash_data(self, roleId: str, token: str, serverId: Optional[str] = None):
         """数据坞"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -463,9 +441,7 @@ class WavesApi:
             explore_data = await self._waves_request(EXPLORE_DATA_URL, "POST", header, data=data)
         return explore_data
 
-    async def get_challenge_data(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_challenge_data(self, roleId: str, token: str, serverId: Optional[str] = None):
         """全息"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -492,9 +468,7 @@ class WavesApi:
             challenge_data = await self._waves_request(CHALLENGE_DATA_URL, "POST", header, data=data)
         return challenge_data
 
-    async def get_abyss_data(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_abyss_data(self, roleId: str, token: str, serverId: Optional[str] = None):
         """深渊"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -520,9 +494,7 @@ class WavesApi:
             abyss_data = await self._waves_request(TOWER_DETAIL_URL, "POST", header, data=data)
         return abyss_data
 
-    async def get_abyss_index(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_abyss_index(self, roleId: str, token: str, serverId: Optional[str] = None):
         """深渊"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -549,9 +521,7 @@ class WavesApi:
             abyss_index = await self._waves_request(TOWER_INDEX_URL, "POST", header, data=data)
         return abyss_index
 
-    async def get_slash_index(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_slash_index(self, roleId: str, token: str, serverId: Optional[str] = None):
         """冥海"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -578,9 +548,7 @@ class WavesApi:
             slash_index = await self._waves_request(SLASH_INDEX_URL, "POST", header, data=data)
         return slash_index
 
-    async def get_slash_detail(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_slash_detail(self, roleId: str, token: str, serverId: Optional[str] = None):
         """冥海"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -607,9 +575,7 @@ class WavesApi:
             slash_detail = await self._waves_request(SLASH_DETAIL_URL, "POST", header, data=data)
         return slash_detail
 
-    async def get_more_activity(
-        self, roleId: str, token: str, serverId: Optional[str] = None
-    ):
+    async def get_more_activity(self, roleId: str, token: str, serverId: Optional[str] = None):
         """浸梦海床+激斗！向着荣耀之丘"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId)
@@ -652,18 +618,14 @@ class WavesApi:
         serverId: Optional[str] = None,
     ):
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
 
         data = {
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(
-            CALCULATOR_REFRESH_DATA_URL, "POST", header, data=data
-        )
+        return await self._waves_request(CALCULATOR_REFRESH_DATA_URL, "POST", header, data=data)
 
     @timed_async_cache(
         86400,
@@ -706,9 +668,7 @@ class WavesApi:
     ):
         """已拥有角色"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         data = {
             "serverId": self.get_server_id(roleId, serverId),
@@ -725,18 +685,14 @@ class WavesApi:
     ):
         """角色培养状态"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         data = {
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
             "ids": ",".join(char_ids),
         }
-        return await self._waves_request(
-            ROLE_CULTIVATE_STATUS, "POST", header, data=data
-        )
+        return await self._waves_request(ROLE_CULTIVATE_STATUS, "POST", header, data=data)
 
     async def get_batch_role_cost(
         self,
@@ -747,9 +703,7 @@ class WavesApi:
     ):
         """角色培养成本"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         data = {
             "serverId": self.get_server_id(roleId, serverId),
@@ -765,9 +719,7 @@ class WavesApi:
     ):
         """资源简报列表"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         return await self._waves_request(PERIOD_LIST_URL, "GET", header)
 
@@ -781,9 +733,7 @@ class WavesApi:
     ):
         """资源简报详情"""
         header = await get_base_header()
-        used_headers = await self.get_used_headers(
-            cookie=token, uid=roleId, needToken=True
-        )
+        used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
         data = {
             "serverId": self.get_server_id(roleId, serverId),
@@ -817,9 +767,7 @@ class WavesApi:
         url = GACHA_NET_LOG_URL if self.is_net(roleId) else GACHA_LOG_URL
         return await self._waves_request(url, "POST", header, json_data=data)
 
-    async def get_ann_list_by_type(
-        self, eventType: str = "", pageSize: Optional[int] = None
-    ):
+    async def get_ann_list_by_type(self, eventType: str = "", pageSize: Optional[int] = None):
         """获取公告列表"""
         data: Dict[str, Any] = {"gameId": WAVES_GAME_ID}
         if eventType:
@@ -876,9 +824,7 @@ class WavesApi:
         headers = await get_community_header()
         headers.update({"wiki_type": "9"})
         data = {"id": entry_id}
-        res = await self._waves_request(
-            WIKI_ENTRY_DETAIL_URL, "POST", headers, data=data
-        )
+        res = await self._waves_request(WIKI_ENTRY_DETAIL_URL, "POST", headers, data=data)
         if res.success:
             raw_data = res.model_dump()
             self.entry_detail_map[entry_id] = raw_data
@@ -920,9 +866,7 @@ class WavesApi:
         else:
             proxy_url = None
 
-        async def do_request(
-            req_data, client_session: aiohttp.ClientSession
-        ) -> KuroApiResp[Any]:
+        async def do_request(req_data, client_session: aiohttp.ClientSession) -> KuroApiResp[Any]:
             async with client_session.request(
                 method,
                 url=url,
@@ -945,9 +889,7 @@ class WavesApi:
                     except Exception:
                         pass
 
-                logger.debug(
-                    f"url:[{url}] params:[{params}] headers:[{header}] data:[{req_data}] raw_data:{raw_data}"
-                )
+                logger.debug(f"url:[{url}] params:[{params}] headers:[{header}] data:[{req_data}] raw_data:{raw_data}")
                 # 统一解析为 KuroApiResp
                 return KuroApiResp[Any].model_validate(raw_data)
 
@@ -972,11 +914,7 @@ class WavesApi:
                 response = await do_request(data, client)
 
                 res_data = response.data or {}
-                if (
-                    self.captcha_solver
-                    and isinstance(res_data, dict)
-                    and res_data.get("geeTest") is True
-                ):
+                if self.captcha_solver and isinstance(res_data, dict) and res_data.get("geeTest") is True:
                     seccode_data = await solve_captcha()
                     if isinstance(seccode_data, CaptchaResult):
                         seccode_data = seccode_data.model_dump_json()

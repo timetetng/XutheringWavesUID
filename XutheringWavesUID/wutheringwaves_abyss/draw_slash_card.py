@@ -1,7 +1,7 @@
 import json
 import time
-from pathlib import Path
 from typing import Union
+from pathlib import Path
 
 import aiofiles
 from PIL import Image, ImageDraw
@@ -10,24 +10,7 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
-from ..utils.api.model import (
-    AccountBaseInfo,
-    RoleDetailData,
-    RoleList,
-    SlashDetail,
-)
-from ..utils.api.wwapi import SlashDetailRequest
-from ..utils.ascension.char import get_char_model
-from ..utils.char_info_utils import get_all_roleid_detail_info
-from ..utils.error_reply import WAVES_CODE_102
-from ..utils.fonts.waves_fonts import (
-    waves_font_18,
-    waves_font_25,
-    waves_font_26,
-    waves_font_30,
-    waves_font_40,
-    waves_font_42,
-)
+from .period import get_slash_period_number
 from ..utils.hint import error_reply
 from ..utils.image import (
     GOLD,
@@ -37,12 +20,29 @@ from ..utils.image import (
     get_waves_bg,
     pic_download_from_url,
 )
+from ..utils.api.model import (
+    RoleList,
+    SlashDetail,
+    RoleDetailData,
+    AccountBaseInfo,
+)
+from ..utils.api.wwapi import SlashDetailRequest
 from ..utils.imagetool import draw_pic, draw_pic_with_ring
+from ..utils.waves_api import waves_api
+from ..utils.error_reply import WAVES_CODE_102
 from ..utils.queues.const import QUEUE_SLASH_RECORD
 from ..utils.queues.queues import push_item
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH, SLASH_PATH
-from ..utils.waves_api import waves_api
-from .period import get_slash_period_number
+from ..utils.ascension.char import get_char_model
+from ..utils.char_info_utils import get_all_roleid_detail_info
+from ..utils.fonts.waves_fonts import (
+    waves_font_18,
+    waves_font_25,
+    waves_font_26,
+    waves_font_30,
+    waves_font_40,
+    waves_font_42,
+)
+from ..utils.resource.RESOURCE_PATH import SLASH_PATH, PLAYER_PATH
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -82,9 +82,7 @@ COLOR_QUALITY = {
 }
 
 
-async def get_slash_data(
-    uid: str, ck: str, is_self_ck: bool
-) -> Union[SlashDetail, str]:
+async def get_slash_data(uid: str, ck: str, is_self_ck: bool) -> Union[SlashDetail, str]:
     if is_self_ck:
         slash_data = await waves_api.get_slash_detail(uid, ck)
     else:
@@ -94,9 +92,7 @@ async def get_slash_data(
         return slash_data.throw_msg()
 
     slash_data = slash_data.data
-    if not slash_data or (
-        isinstance(slash_data, dict) and not slash_data.get("isUnlock", False)
-    ):
+    if not slash_data or (isinstance(slash_data, dict) and not slash_data.get("isUnlock", False)):
         if not is_self_ck:
             return SLASH_ERROR_MESSAGE_NO_UNLOCK
         return SLASH_ERROR_MESSAGE_NO_DATA
@@ -173,23 +169,14 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
     info_h = 300
     CHALLENGE_SPACING = 30
 
-    h = (
-        footer_h
-        + card_h
-        + (info_h + title_h + CHALLENGE_SPACING) * len(query_challenge_ids)
-        - CHALLENGE_SPACING
-    )
+    h = footer_h + card_h + (info_h + title_h + CHALLENGE_SPACING) * len(query_challenge_ids) - CHALLENGE_SPACING
     card_img = get_waves_bg(1100, h, "bg9")
 
     # 绘制个人信息
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")
     base_info_draw = ImageDraw.Draw(base_info_bg)
-    base_info_draw.text(
-        (275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm"
-    )
-    base_info_draw.text(
-        (226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm"
-    )
+    base_info_draw.text((275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm")
+    base_info_draw.text((226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm")
     card_img.paste(base_info_bg, (15, 20), base_info_bg)
 
     # 头像 头像环
@@ -202,14 +189,10 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
         title_bar = Image.open(TEXT_PATH / "title_bar.png")
         title_bar_draw = ImageDraw.Draw(title_bar)
         title_bar_draw.text((660, 125), "账号等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text(
-            (660, 78), f"Lv.{account_info.level}", "white", waves_font_42, "mm"
-        )
+        title_bar_draw.text((660, 78), f"Lv.{account_info.level}", "white", waves_font_42, "mm")
 
         title_bar_draw.text((810, 125), "世界等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text(
-            (810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm"
-        )
+        title_bar_draw.text((810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm")
         card_img.paste(title_bar, (-20, 70), title_bar)
 
     # 根据面板数据获取详细信息
@@ -229,9 +212,7 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                 continue
 
             # 获取title
-            title_bar = Image.open(
-                TEXT_PATH / f"difficulty_{difficulty.difficulty}.png"
-            )
+            title_bar = Image.open(TEXT_PATH / f"difficulty_{difficulty.difficulty}.png")
 
             temp_bar_draw = ImageDraw.Draw(title_bar)
             # 层数
@@ -275,9 +256,7 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
             role_bg = Image.open(TEXT_PATH / "role_hang_bg.png")
             # 获取角色信息
             for half_index, slash_half in enumerate(challenge.halfList):
-                role_hang_bg = Image.new(
-                    "RGBA", (1100, info_h // 2), (255, 255, 255, 0)
-                )
+                role_hang_bg = Image.new("RGBA", (1100, info_h // 2), (255, 255, 255, 0))
                 role_hang_bg_draw = ImageDraw.Draw(role_hang_bg)
                 text_dui = "队伍一" if half_index == 0 else "队伍二"
                 role_hang_bg_draw.text(
@@ -319,9 +298,7 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                     if char_model is None:
                         continue
                     avatar = await draw_pic(slash_role.roleId)
-                    char_bg = Image.open(
-                        TEXT_PATH / f"char_bg{char_model.starLevel}.png"
-                    )
+                    char_bg = Image.open(TEXT_PATH / f"char_bg{char_model.starLevel}.png")
                     char_bg_draw = ImageDraw.Draw(char_bg)
                     char_bg_draw.text(
                         (90, 150),
@@ -331,20 +308,11 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                         "mm",
                     )
                     char_bg.paste(avatar, (0, 0), avatar)
-                    if (
-                        role_detail_info_map
-                        and str(slash_role.roleId) in role_detail_info_map
-                    ):
-                        temp: RoleDetailData = role_detail_info_map[
-                            str(slash_role.roleId)
-                        ]
-                        info_block = Image.new(
-                            "RGBA", (40, 20), color=(255, 255, 255, 0)
-                        )
+                    if role_detail_info_map and str(slash_role.roleId) in role_detail_info_map:
+                        temp: RoleDetailData = role_detail_info_map[str(slash_role.roleId)]
+                        info_block = Image.new("RGBA", (40, 20), color=(255, 255, 255, 0))
                         info_block_draw = ImageDraw.Draw(info_block)
-                        info_block_draw.rectangle(
-                            [0, 0, 40, 20], fill=(96, 12, 120, int(0.9 * 255))
-                        )
+                        info_block_draw.rectangle([0, 0, 40, 20], fill=(96, 12, 120, int(0.9 * 255)))
                         info_block_draw.text(
                             (2, 10),
                             f"{temp.get_chain_name()}",
@@ -354,9 +322,7 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                         )
                         char_bg.paste(info_block, (110, 35), info_block)
 
-                    role_hang_bg.alpha_composite(
-                        char_bg, (350 + role_index * info_h // 2, -20)
-                    )
+                    role_hang_bg.alpha_composite(char_bg, (350 + role_index * info_h // 2, -20))
 
                 role_bg.paste(role_hang_bg, (0, info_h // 2 * half_index), role_hang_bg)
 

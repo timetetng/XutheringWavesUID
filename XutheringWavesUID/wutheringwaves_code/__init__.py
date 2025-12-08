@@ -1,14 +1,14 @@
-import json
 import re
+import json
 import time
 from datetime import datetime
 
 import httpx
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
 sv_waves_code = SV("鸣潮兑换码")
 
@@ -17,7 +17,7 @@ invalid_code_list = ("MINGCHAO",)
 url = "https://newsimg.5054399.com/comm/mlcxqcommon/static/wap/js/data_102.js?{}&callback=?&_={}"
 
 
-@sv_waves_code.on_fullmatch((f"code", f"兑换码"))
+@sv_waves_code.on_fullmatch(("code", "兑换码"))
 async def get_sign_func(bot: Bot, ev: Event):
     code_list = await get_code_list()
     if not code_list:
@@ -96,9 +96,7 @@ def is_code_expired(label: str) -> bool:
         expire_sec = 0
 
     # 构建截止时间
-    expire_date = datetime(
-        expire_year, expire_month, expire_day, expire_hour, expire_min, expire_sec
-    )
+    expire_date = datetime(expire_year, expire_month, expire_day, expire_hour, expire_min, expire_sec)
 
     # 比较时间
     return now > expire_date

@@ -1,13 +1,14 @@
 import json
-from pathlib import Path
 from typing import Dict
+from pathlib import Path
 
 from PIL import Image
 
-from gsuid_core.help.draw_new_plugin_help import get_new_help
 from gsuid_core.help.model import PluginHelp
-from ..utils.image import get_footer
+from gsuid_core.help.draw_new_plugin_help import get_new_help
+
 from ..version import XutheringWavesUID_version
+from ..utils.image import get_footer
 from ..wutheringwaves_config import PREFIX
 
 ICON = Path(__file__).parent.parent.parent / "ICON.png"

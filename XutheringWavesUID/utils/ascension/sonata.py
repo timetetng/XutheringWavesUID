@@ -1,11 +1,11 @@
-from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union, Optional
 
 from msgspec import json as msgjson
-from pydantic import BaseModel, Field
+from pydantic import Field, BaseModel
 
 from gsuid_core.logger import logger
-from ..resource.RESOURCE_PATH import MAP_DETAIL_PATH, MAP_PATH
+
+from ..resource.RESOURCE_PATH import MAP_PATH, MAP_DETAIL_PATH
 
 MAP_PATH_SONATA = MAP_DETAIL_PATH / "sonata"
 SONATA_ID_MAP_PATH = MAP_PATH / "sonata_id.json"
@@ -41,7 +41,7 @@ def load_sonata_name_mapping():
         else:
             logger.warning(f"sonata_id.json not found at {SONATA_ID_MAP_PATH}")
     except Exception as e:
-        logger.exception(f"Failed to load sonata_id.json mapping", e)
+        logger.exception("Failed to load sonata_id.json mapping", e)
 
 
 def ensure_data_loaded(force: bool = False):

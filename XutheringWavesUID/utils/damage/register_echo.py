@@ -1,18 +1,18 @@
-from ...utils.damage.abstract import EchoAbstract, WavesEchoRegister
-from .damage import DamageAttribute
 from .utils import (
-    CHAR_ATTR_CELESTIAL,
-    CHAR_ATTR_FREEZING,
+    CHAR_ATTR_VOID,
     CHAR_ATTR_MOLTEN,
     CHAR_ATTR_SIERRA,
     CHAR_ATTR_SINKING,
-    CHAR_ATTR_VOID,
-    attack_damage,
-    hit_damage,
-    liberation_damage,
-    skill_damage,
+    CHAR_ATTR_FREEZING,
+    CHAR_ATTR_CELESTIAL,
     temp_atk,
+    hit_damage,
+    skill_damage,
+    attack_damage,
+    liberation_damage,
 )
+from .damage import DamageAttribute
+from ...utils.damage.abstract import EchoAbstract, WavesEchoRegister
 
 
 class Echo_390070051(EchoAbstract):

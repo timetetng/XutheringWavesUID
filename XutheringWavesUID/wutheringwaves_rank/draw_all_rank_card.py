@@ -1,8 +1,8 @@
-import asyncio
 import copy
 import time
+import asyncio
+from typing import Union, Optional
 from pathlib import Path
-from typing import Optional, Union
 
 import httpx
 from PIL import Image, ImageDraw
@@ -12,16 +12,43 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
+from ..utils.util import get_version
+from ..utils.cache import TimedCache
+from ..utils.image import (
+    RED,
+    GREY,
+    AMBER,
+    WAVES_VOID,
+    CHAIN_COLOR,
+    SPECIAL_GOLD,
+    WAVES_MOLTEN,
+    WAVES_SIERRA,
+    WAVES_MOONLIT,
+    WAVES_FREEZING,
+    WAVES_LINGERING,
+    WEAPON_RESONLEVEL_COLOR,
+    add_footer,
+    get_attribute,
+    get_qq_avatar,
+    crop_center_img,
+    get_square_avatar,
+    get_square_weapon,
+    get_custom_waves_bg,
+    get_attribute_effect,
+    get_role_pile_default,
+)
 from ..utils.api.wwapi import (
     GET_RANK_URL,
+    RankItem,
     RankDetail,
     RankInfoResponse,
-    RankItem,
 )
+from ..utils.waves_api import waves_api
+from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..utils.ascension.char import get_char_model
-from ..utils.ascension.weapon import get_weapon_model
-from ..utils.cache import TimedCache
 from ..utils.database.models import WavesBind
+from ..wutheringwaves_config import WutheringWavesConfig
+from ..utils.ascension.weapon import get_weapon_model
 from ..utils.fonts.waves_fonts import (
     waves_font_14,
     waves_font_16,
@@ -34,34 +61,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_40,
     waves_font_44,
 )
-from ..utils.image import (
-    AMBER,
-    CHAIN_COLOR,
-    GREY,
-    RED,
-    SPECIAL_GOLD,
-    WAVES_FREEZING,
-    WAVES_LINGERING,
-    WAVES_MOLTEN,
-    WAVES_MOONLIT,
-    WAVES_SIERRA,
-    WAVES_VOID,
-    WEAPON_RESONLEVEL_COLOR,
-    add_footer,
-    crop_center_img,
-    get_attribute,
-    get_attribute_effect,
-    get_qq_avatar,
-    get_role_pile_default,
-    get_square_avatar,
-    get_square_weapon,
-    get_custom_waves_bg,
-)
-from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..utils.resource.constant import ATTRIBUTE_ID_MAP, SPECIAL_CHAR_NAME
-from ..utils.util import get_version
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import WutheringWavesConfig
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 TITLE_I = Image.open(TEXT_PATH / "title.png")
@@ -114,9 +114,7 @@ async def get_rank(item: RankItem) -> Optional[RankInfoResponse]:
             logger.exception(f"获取排行失败: {e}")
 
 
-async def draw_all_rank_card(
-    bot: Bot, ev: Event, char: str, rank_type: str, pages: int
-) -> Union[str, bytes]:
+async def draw_all_rank_card(bot: Bot, ev: Event, char: str, rank_type: str, pages: int) -> Union[str, bytes]:
     is_self_ck = False
     self_uid = ""
     try:
@@ -126,16 +124,12 @@ async def draw_all_rank_card(
         pass
     char_id = char_name_to_char_id(char)
     if not char_id:
-        return (
-            f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n"
-        )
+        return f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n"
     char_name = alias_to_char_name(char)
 
     char_model = get_char_model(char_id)
     if not char_model:
-        return (
-            f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n"
-        )
+        return f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n"
 
     attribute_name = ATTRIBUTE_ID_MAP[char_model.attributeId]
 
@@ -175,9 +169,7 @@ async def draw_all_rank_card(
     text_bar_draw = ImageDraw.Draw(text_bar_img)
     # 绘制深灰色背景
     bar_bg_color = (36, 36, 41, 230)
-    text_bar_draw.rounded_rectangle(
-        [20, 20, 1280, text_bar_h - 15], radius=8, fill=bar_bg_color
-    )
+    text_bar_draw.rounded_rectangle([20, 20, 1280, text_bar_h - 15], radius=8, fill=bar_bg_color)
 
     # 绘制顶部的金色高亮线
     accent_color = (203, 161, 95)
@@ -186,15 +178,11 @@ async def draw_all_rank_card(
     # 左侧标题
     text_bar_draw.text((40, 60), "上榜条件", GREY, waves_font_28, "lm")
     text_bar_draw.text((185, 50), "1. 声骸套装5件套", SPECIAL_GOLD, waves_font_20, "lm")
-    text_bar_draw.text(
-        (185, 85), "2. 登录用户&刷新面板", SPECIAL_GOLD, waves_font_20, "lm"
-    )
+    text_bar_draw.text((185, 85), "2. 登录用户&刷新面板", SPECIAL_GOLD, waves_font_20, "lm")
 
     # 备注
     if rank_type == "伤害":
-        temp_notes = (
-            "排行标准：以期望伤害（计算暴击率的伤害，不代表实际伤害) 为排序的排名"
-        )
+        temp_notes = "排行标准：以期望伤害（计算暴击率的伤害，不代表实际伤害) 为排序的排名"
     else:
         temp_notes = "排行标准：以声骸分数（声骸评分高，不代表实际伤害高) 为排序的排名"
     text_bar_draw.text((1260, 100), temp_notes, SPECIAL_GOLD, waves_font_16, "rm")
@@ -211,9 +199,7 @@ async def draw_all_rank_card(
     pic_temp.paste(pic.resize((160, 160)), (10, 10))
     pic_temp = pic_temp.resize((160, 160))
 
-    tasks = [
-        get_avatar(rank.user_id, rank.char_id) for rank in rankInfoList.data.details
-    ]
+    tasks = [get_avatar(rank.user_id, rank.char_id) for rank in rankInfoList.data.details]
     results = await asyncio.gather(*tasks)
 
     bot_color = copy.deepcopy(BOT_COLOR)
@@ -235,17 +221,13 @@ async def draw_all_rank_card(
         info_block_draw = ImageDraw.Draw(info_block)
         fill = CHAIN_COLOR[rank.chain] + (int(0.9 * 255),)
         info_block_draw.rounded_rectangle([0, 0, 46, 20], radius=6, fill=fill)
-        info_block_draw.text(
-            (5, 10), f"{get_chain_name(rank.chain)}", "white", waves_font_18, "lm"
-        )
+        info_block_draw.text((5, 10), f"{get_chain_name(rank.chain)}", "white", waves_font_18, "lm")
         bar_bg.alpha_composite(info_block, (190, 30))
 
         # 等级
         info_block = Image.new("RGBA", (60, 20), color=(255, 255, 255, 0))
         info_block_draw = ImageDraw.Draw(info_block)
-        info_block_draw.rounded_rectangle(
-            [0, 0, 60, 20], radius=6, fill=(54, 54, 54, int(0.9 * 255))
-        )
+        info_block_draw.rounded_rectangle([0, 0, 60, 20], radius=6, fill=(54, 54, 54, int(0.9 * 255)))
         info_block_draw.text((5, 10), f"Lv.{rank.level}", "white", waves_font_18, "lm")
         bar_bg.alpha_composite(info_block, (240, 30))
 
@@ -281,9 +263,7 @@ async def draw_all_rank_card(
 
         weapon_model = get_weapon_model(rank.weapon_id)
         if not weapon_model:
-            logger.warning(
-                f"武器名【{rank.weapon_id}】无法找到, 可能暂未适配, 请先检查输入是否正确！"
-            )
+            logger.warning(f"武器名【{rank.weapon_id}】无法找到, 可能暂未适配, 请先检查输入是否正确！")
             continue
 
         weapon_icon = await get_square_weapon(rank.weapon_id)
@@ -299,19 +279,13 @@ async def draw_all_rank_card(
             waves_font_40,
             "lm",
         )
-        weapon_bg_temp_draw.text(
-            (203, 75), f"Lv.{rank.level}/90", "white", waves_font_30, "lm"
-        )
+        weapon_bg_temp_draw.text((203, 75), f"Lv.{rank.level}/90", "white", waves_font_30, "lm")
 
         _x = 220
         _y = 120
         wrc_fill = WEAPON_RESONLEVEL_COLOR[rank.weapon_reson_level] + (int(0.8 * 255),)
-        weapon_bg_temp_draw.rounded_rectangle(
-            [_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill
-        )
-        weapon_bg_temp_draw.text(
-            (_x, _y), f"精{rank.weapon_reson_level}", "white", waves_font_24, "lm"
-        )
+        weapon_bg_temp_draw.rounded_rectangle([_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill)
+        weapon_bg_temp_draw.text((_x, _y), f"精{rank.weapon_reson_level}", "white", waves_font_24, "lm")
 
         weapon_bg_temp.alpha_composite(weapon_icon_bg, dest=(45, 0))
 
@@ -325,9 +299,7 @@ async def draw_all_rank_card(
             waves_font_34,
             "mm",
         )
-        bar_star_draw.text(
-            (1140, 75), f"{rank.expected_name}", "white", waves_font_16, "mm"
-        )
+        bar_star_draw.text((1140, 75), f"{rank.expected_name}", "white", waves_font_16, "mm")
 
         # 排名
         rank_id = rank.rank
@@ -342,9 +314,7 @@ async def draw_all_rank_card(
         def draw_rank_id(rank_id, size=(50, 50), draw=(24, 24), dest=(40, 30)):
             info_rank = Image.new("RGBA", size, color=(255, 255, 255, 0))
             rank_draw = ImageDraw.Draw(info_rank)
-            rank_draw.rounded_rectangle(
-                [0, 0, size[0], size[1]], radius=8, fill=rank_color + (int(0.9 * 255),)
-            )
+            rank_draw.rounded_rectangle([0, 0, size[0], size[1]], radius=8, fill=rank_color + (int(0.9 * 255),))
             rank_draw.text(draw, f"{rank_id}", "white", waves_font_34, "mm")
             bar_bg.alpha_composite(info_rank, dest)
 
@@ -363,9 +333,7 @@ async def draw_all_rank_card(
         uid_color = "white"
         if is_self_ck and self_uid == rank.waves_id:
             uid_color = RED
-        bar_star_draw.text(
-            (350, 40), f"特征码: {rank.waves_id}", uid_color, waves_font_20, "lm"
-        )
+        bar_star_draw.text((350, 40), f"特征码: {rank.waves_id}", uid_color, waves_font_20, "lm")
 
         # bot主人名字
         botName = rank.alias_name if rank.alias_name else ""
@@ -379,12 +347,8 @@ async def draw_all_rank_card(
 
             info_block = Image.new("RGBA", (200, 30), color=(255, 255, 255, 0))
             info_block_draw = ImageDraw.Draw(info_block)
-            info_block_draw.rounded_rectangle(
-                [0, 0, 200, 30], radius=6, fill=color + (int(0.6 * 255),)
-            )
-            info_block_draw.text(
-                (100, 15), f"bot: {botName}", "white", waves_font_18, "mm"
-            )
+            info_block_draw.rounded_rectangle([0, 0, 200, 30], radius=6, fill=color + (int(0.6 * 255),))
+            info_block_draw.text((100, 15), f"bot: {botName}", "white", waves_font_18, "mm")
             bar_bg.alpha_composite(info_block, (350, 65))
 
         # 贴到背景
@@ -422,9 +386,7 @@ async def draw_all_rank_card(
     # 版本
     info_block = Image.new("RGBA", (100, 30), color=(255, 255, 255, 0))
     info_block_draw = ImageDraw.Draw(info_block)
-    info_block_draw.rounded_rectangle(
-        [0, 0, 100, 30], radius=6, fill=(0, 79, 152, int(0.9 * 255))
-    )
+    info_block_draw.rounded_rectangle([0, 0, 100, 30], radius=6, fill=(0, 79, 152, int(0.9 * 255)))
     info_block_draw.text((50, 15), f"v{get_version()}", "white", waves_font_24, "mm")
     _x = 540 + 31 * len(title_name)
     title.alpha_composite(info_block, (_x, 255))

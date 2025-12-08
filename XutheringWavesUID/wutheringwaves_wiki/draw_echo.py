@@ -1,12 +1,19 @@
 import textwrap
-from pathlib import Path
 from typing import Optional
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
+from ..utils.image import (
+    SPECIAL_GOLD,
+    add_footer,
+    get_crop_waves_bg,
+    get_attribute_effect,
+)
+from ..utils.name_convert import alias_to_echo_name, echo_name_to_echo_id
 from ..utils.ascension.echo import get_echo_model
 from ..utils.ascension.model import EchoModel
 from ..utils.fonts.waves_fonts import (
@@ -14,13 +21,6 @@ from ..utils.fonts.waves_fonts import (
     waves_font_40,
     waves_font_origin,
 )
-from ..utils.image import (
-    SPECIAL_GOLD,
-    add_footer,
-    get_attribute_effect,
-    get_crop_waves_bg,
-)
-from ..utils.name_convert import alias_to_echo_name, echo_name_to_echo_id
 from ..utils.resource.download_file import get_phantom_img
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -72,9 +72,7 @@ async def parse_echo_detail_content(echo_model: EchoModel, card_img):
 
     image = Image.new("RGBA", (650, 320), (255, 255, 255, 0))
     image_draw = ImageDraw.Draw(image)
-    image_draw.rounded_rectangle(
-        [20, 20, 630, 300], radius=20, fill=(0, 0, 0, int(0.3 * 255))
-    )
+    image_draw.rounded_rectangle([20, 20, 630, 300], radius=20, fill=(0, 0, 0, int(0.3 * 255)))
     title = "技能描述"
     desc = echo_model.get_skill_detail()
 
@@ -89,12 +87,8 @@ async def parse_echo_detail_content(echo_model: EchoModel, card_img):
 
     # 计算总的绘制高度
     total_text_height = y_padding + block_line_spacing + shadow_radius * 2
-    total_text_height += len(lines_title) * (
-        title_font_size + line_spacing
-    )  # 标题部分的总高度
-    total_text_height += len(lines_desc) * (
-        detail_font_size + line_spacing
-    )  # 描述部分的总高度
+    total_text_height += len(lines_title) * (title_font_size + line_spacing)  # 标题部分的总高度
+    total_text_height += len(lines_desc) * (detail_font_size + line_spacing)  # 描述部分的总高度
 
     # 绘制标题文本
     y_offset = y_padding + shadow_radius
@@ -130,12 +124,8 @@ async def parse_echo_statistic_content(echo_model: EchoModel, echo_image):
     echo_bg_temp.alpha_composite(echo_bg, dest=(0, 0))
     echo_bg_temp_draw = ImageDraw.Draw(echo_bg_temp)
     for index, row in enumerate(rows):
-        echo_bg_temp_draw.text(
-            (100, 207 + index * 50), f"{row[0]}", "white", waves_font_30, "lm"
-        )
-        echo_bg_temp_draw.text(
-            (480, 207 + index * 50), f"{row[1]}", "white", waves_font_30, "rm"
-        )
+        echo_bg_temp_draw.text((100, 207 + index * 50), f"{row[0]}", "white", waves_font_30, "lm")
+        echo_bg_temp_draw.text((480, 207 + index * 50), f"{row[1]}", "white", waves_font_30, "rm")
 
     echo_bg_temp = echo_bg_temp.resize((350, 175))
     echo_image.alpha_composite(echo_bg_temp, (10, 200))

@@ -3,11 +3,11 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 from .calc import WuWaCalc
-from ..utils.api.model import RoleDetailData
-from .damage.abstract import DamageRankRegister
+from .calculate import get_calc_map, calc_phantom_score, get_total_score_bg
 from .damage.utils import comma_separated_number
 from .char_info_utils import get_all_role_detail_info
-from .calculate import get_calc_map, calc_phantom_score, get_total_score_bg
+from .damage.abstract import DamageRankRegister
+from ..utils.api.model import RoleDetailData
 
 
 class WavesCharRank(BaseModel):
@@ -75,23 +75,15 @@ async def get_waves_char_rank(uid, all_role_detail, need_expected_damage=False):
             for i, _phantom in enumerate(equipPhantomList):
                 if _phantom and _phantom.phantomProp:
                     props = _phantom.get_props()
-                    _score, _bg = calc_phantom_score(
-                        role_detail.role.roleId, props, _phantom.cost, calc.calc_temp
-                    )
+                    _score, _bg = calc_phantom_score(role_detail.role.roleId, props, _phantom.cost, calc.calc_temp)
                     phantom_score += _score
 
             if need_expected_damage:
                 rankDetail = DamageRankRegister.find_class(str(role_detail.role.roleId))
                 if rankDetail:
-                    calc.role_card = calc.enhance_summation_card_value(
-                        calc.phantom_card
-                    )
-                    calc.damageAttribute = calc.card_sort_map_to_attribute(
-                        calc.role_card
-                    )
-                    _, expected_damage = rankDetail["func"](
-                        calc.damageAttribute, role_detail
-                    )
+                    calc.role_card = calc.enhance_summation_card_value(calc.phantom_card)
+                    calc.damageAttribute = calc.card_sort_map_to_attribute(calc.role_card)
+                    _, expected_damage = rankDetail["func"](calc.damageAttribute, role_detail)
                     expected_damage = comma_separated_number(expected_damage)
                     expected_name = rankDetail["title"]
 
@@ -124,9 +116,7 @@ async def get_waves_char_rank(uid, all_role_detail, need_expected_damage=False):
                 "chain": role_detail.get_chain_num(),
                 "chainName": role_detail.get_chain_name(),
                 "score": phantom_score,
-                "score_bg": get_total_score_bg(
-                    role_detail.role.roleName, phantom_score, calc.calc_temp
-                ),
+                "score_bg": get_total_score_bg(role_detail.role.roleName, phantom_score, calc.calc_temp),
                 "expected_damage": expected_damage,
                 "weaponId": role_detail.weaponData.weapon.weaponId,
                 "weaponLevel": role_detail.weaponData.level,

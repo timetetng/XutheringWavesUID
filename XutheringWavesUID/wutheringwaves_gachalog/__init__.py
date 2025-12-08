@@ -1,28 +1,28 @@
 import re
 import json
-import asyncio
 import time
 import shutil
-from datetime import datetime
+import asyncio
 from typing import Any, List
+from datetime import datetime
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 from gsuid_core.segment import MessageSegment
-from gsuid_core.sv import SV
 from gsuid_core.data_store import get_res_path
 
-from ..utils.button import WavesButton
 from ..utils.cache import TimedCache
-from ..utils.database.models import WavesBind
-from ..utils.error_reply import ERROR_CODE, WAVES_CODE_102, WAVES_CODE_103
-from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import PREFIX
-from .draw_gachalogs import draw_card, draw_card_help
-from .get_gachalogs import export_gachalogs, import_gachalogs, save_gachalogs
+from ..utils.button import WavesButton
 from .gacha_handler import fetch_mcgf_data, merge_gacha_data
-from ..wutheringwaves_rank.draw_gacha_rank_card import draw_gacha_rank_card
+from .get_gachalogs import save_gachalogs, export_gachalogs, import_gachalogs
+from .draw_gachalogs import draw_card, draw_card_help
+from ..utils.waves_api import waves_api
+from ..utils.error_reply import ERROR_CODE, WAVES_CODE_102, WAVES_CODE_103
+from ..utils.database.models import WavesBind
+from ..wutheringwaves_config import PREFIX
 from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+from ..wutheringwaves_rank.draw_gacha_rank_card import draw_gacha_rank_card
 
 sv_gacha_log = SV("waves抽卡记录")
 sv_gacha_help_log = SV("waves抽卡记录帮助")
@@ -60,7 +60,6 @@ def set_gacha_import_cache(user_id: str, uid: str):
 
 @sv_get_gachalog_by_link.on_command(("导入抽卡链接", "导入抽卡记录"))
 async def get_gacha_log_by_link(bot: Bot, ev: Event):
-
     # 没有uid 就别导了吧
     uid = await WavesBind.get_uid_by_game(ev.user_id, ev.bot_id)
     if not uid:
@@ -78,7 +77,7 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
     # 检查是否为9位UID，若是则尝试从工坊获取并合并数据
     if raw.isdigit() and len(raw) == 9:
         target_uid = raw
-                
+
         try:
             latest_data = await fetch_mcgf_data(target_uid)
             if not latest_data:
@@ -86,25 +85,26 @@ async def get_gacha_log_by_link(bot: Bot, ev: Event):
 
             export_res = await export_gachalogs(uid)
             original_data = {"info": {}, "list": []}
-            
+
             if export_res["retcode"] == "ok":
                 import aiofiles
+
                 async with aiofiles.open(export_res["url"], "r", encoding="utf-8") as f:
                     original_data = json.loads(await f.read())
-                    
+
             if len(original_data.get("list", [])) == 0:
                 return await bot.send("当前无抽卡记录，无法合并，请先导入抽卡记录后再尝试合并！")
-            
+
             # 合并数据
             if not original_data["info"].get("uid") == latest_data["data"].get("uid"):
                 return await bot.send("导入数据UID与当前UID不匹配，无法合并！")
             merged_data = await asyncio.to_thread(merge_gacha_data, original_data, latest_data)
-            
+
             # 导入合并后的数据
             merged_json_str = json.dumps(merged_data, ensure_ascii=False)
             im = await import_gachalogs(ev, merged_json_str, "json", uid, force_overwrite=True)
             return await bot.send(im)
-            
+
         except Exception as e:
             return await bot.send(f"处理过程中发生错误: {e}")
 
@@ -246,9 +246,7 @@ async def delete_gacha_history(bot: Bot, ev: Event):
     await bot.send(f"UID{uid}抽卡记录已删除")
 
 
-@sv_delete_import_gacha_log.on_command(
-    ("删除抽卡导入", "删除导入记录", "删除导入抽卡"), block=True
-)
+@sv_delete_import_gacha_log.on_command(("删除抽卡导入", "删除导入记录", "删除导入抽卡"), block=True)
 async def delete_import_gacha_files(bot: Bot, ev: Event):
     delete_count = 0
     for player_dir in PLAYER_PATH.iterdir():

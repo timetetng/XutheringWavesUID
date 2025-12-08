@@ -1,6 +1,6 @@
 import asyncio
 import threading
-from typing import Any, Callable, Coroutine, Dict, List, Union
+from typing import Any, Dict, List, Union, Callable, Coroutine
 
 from gsuid_core.logger import logger
 
@@ -73,9 +73,7 @@ class TaskDispatcher:
             return
 
         self.running = True
-        threading.Thread(
-            target=lambda: asyncio.run(self._process()), daemon=daemon
-        ).start()
+        threading.Thread(target=lambda: asyncio.run(self._process()), daemon=daemon).start()
 
 
 # 创建全局任务分发器实例

@@ -1,18 +1,18 @@
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Type, TypeVar, Optional
 
-from sqlalchemy import delete, null, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import and_, or_
 from sqlmodel import Field, col, select
+from sqlalchemy import null, delete, update
+from sqlalchemy.sql import or_, and_
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from gsuid_core.webconsole.mount_app import PageSchema, GsAdminModel, site
+from gsuid_core.utils.database.startup import exec_list
 from gsuid_core.utils.database.base_models import (
     Bind,
     Push,
     User,
     with_session,
 )
-from gsuid_core.utils.database.startup import exec_list
-from gsuid_core.webconsole.mount_app import GsAdminModel, PageSchema, site
 
 exec_list.extend(
     [
@@ -37,13 +37,9 @@ class WavesBind(Bind, table=True):
 
     @classmethod
     @with_session
-    async def get_group_all_uid(
-        cls: Type[T_WavesBind], session: AsyncSession, group_id: Optional[str] = None
-    ):
+    async def get_group_all_uid(cls: Type[T_WavesBind], session: AsyncSession, group_id: Optional[str] = None):
         """根据传入`group_id`获取该群号下所有绑定`uid`列表"""
-        result = await session.scalars(
-            select(cls).where(col(cls.group_id).contains(group_id))
-        )
+        result = await session.scalars(select(cls).where(col(cls.group_id).contains(group_id)))
         return result.all()
 
     @classmethod
@@ -123,15 +119,8 @@ class WavesUser(User, table=True):
 
     @classmethod
     @with_session
-    async def mark_cookie_invalid(
-        cls: Type[T_WavesUser], session: AsyncSession, uid: str, cookie: str, mark: str
-    ):
-        sql = (
-            update(cls)
-            .where(col(cls.uid) == uid)
-            .where(col(cls.cookie) == cookie)
-            .values(status=mark)
-        )
+    async def mark_cookie_invalid(cls: Type[T_WavesUser], session: AsyncSession, uid: str, cookie: str, mark: str):
+        sql = update(cls).where(col(cls.uid) == uid).where(col(cls.cookie) == cookie).values(status=mark)
         await session.execute(sql)
         return True
 
@@ -228,9 +217,7 @@ class WavesUser(User, table=True):
 
     @classmethod
     @with_session
-    async def get_waves_all_user(
-        cls: Type[T_WavesUser], session: AsyncSession
-    ) -> List[T_WavesUser]:
+    async def get_waves_all_user(cls: Type[T_WavesUser], session: AsyncSession) -> List[T_WavesUser]:
         """获取所有有效用户"""
         sql = select(cls).where(
             and_(

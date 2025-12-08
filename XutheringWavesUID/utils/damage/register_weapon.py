@@ -1,22 +1,22 @@
 from typing import List, Union
 
-from ..damage.abstract import WavesWeaponRegister, WeaponAbstract
-from .damage import DamageAttribute, calc_percent_expression
 from .utils import (
-    CHAR_ATTR_CELESTIAL,
     CHAR_ATTR_MOLTEN,
     CHAR_ATTR_SIERRA,
+    CHAR_ATTR_CELESTIAL,
     Spectro_Frazzle_Role_Ids,
-    attack_damage,
-    heal_bonus,
-    hit_damage,
-    liberation_damage,
-    phantom_damage,
-    skill_damage,
     temp_atk,
     temp_def,
     temp_life,
+    heal_bonus,
+    hit_damage,
+    skill_damage,
+    attack_damage,
+    phantom_damage,
+    liberation_damage,
 )
+from .damage import DamageAttribute, calc_percent_expression
+from ..damage.abstract import WeaponAbstract, WavesWeaponRegister
 
 
 class Weapon_21010011(WeaponAbstract):
@@ -1461,7 +1461,7 @@ class Weapon_21050027(WeaponAbstract):
             return
         if attr.char_attr != CHAR_ATTR_CELESTIAL:
             return
-        dmg = f"{self.param(0)*4}"
+        dmg = f"{self.param(0) * 4}"
         title = self.get_title()
         msg = f"对带有【光噪效应】的敌人造成伤害时获得效果：自身衍射伤害提升{dmg}"
         attr.add_dmg_bonus(calc_percent_expression(dmg), title, msg)

@@ -1,10 +1,10 @@
-import asyncio
-import inspect
+import time
 import random
 import string
-import time
+import asyncio
+import inspect
+from typing import Any, Dict, List, TypeVar, Callable, Coroutine, overload
 from functools import wraps
-from typing import Any, Callable, Coroutine, Dict, List, TypeVar, overload
 
 import httpx
 
@@ -127,7 +127,7 @@ async def get_public_ip(host="127.127.127.127"):
             r = await client.get("https://event.kurobbs.com/event/ip", timeout=4)
             ip = r.text
             return ip
-    except:  # noqa:E722, B001
+    except Exception:
         pass
 
     # 尝试从 ipify 获取 IP 地址
@@ -136,7 +136,7 @@ async def get_public_ip(host="127.127.127.127"):
             r = await client.get("https://api.ipify.org/?format=json", timeout=4)
             ip = r.json()["ip"]
             return ip
-    except:  # noqa:E722, B001
+    except Exception:
         pass
 
     # 尝试从 httpbin.org 获取 IP 地址
@@ -145,7 +145,7 @@ async def get_public_ip(host="127.127.127.127"):
             r = await client.get("https://httpbin.org/ip", timeout=4)
             ip = r.json()["origin"]
             return ip
-    except:  # noqa:E722, B001
+    except Exception:
         pass
 
     return host
@@ -188,8 +188,10 @@ def format_with_defaults(desc: str, params: List[Any], default_value: str = "N/A
 
 def get_version(dynamic: bool = False, **kwargs):
     from ..version import XutheringWavesUID_version
+
     if dynamic:
         from ..utils.safety import generate_dynamic_version
+
         dynamic_version = generate_dynamic_version(**kwargs)
         return XutheringWavesUID_version + dynamic_version
 

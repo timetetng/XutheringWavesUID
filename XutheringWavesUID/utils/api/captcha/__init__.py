@@ -1,11 +1,11 @@
-import importlib
 import pkgutil
-from typing import Dict, Optional, Type
+import importlib
+from typing import Dict, Type, Optional
 
 from gsuid_core.logger import logger
 
-from ...resource.RESOURCE_PATH import CAPTCHA_PATH
 from .base import CaptchaSolver
+from ...resource.RESOURCE_PATH import CAPTCHA_PATH
 
 SOLVER_REGISTRY: Dict[str, Type[CaptchaSolver]] = {}
 

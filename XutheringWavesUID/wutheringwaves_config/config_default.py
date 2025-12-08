@@ -2,12 +2,12 @@ from typing import Dict
 
 from gsuid_core.utils.plugins_config.models import (
     GSC,
+    GsIntConfig,
+    GsStrConfig,
     GsBoolConfig,
     GsDictConfig,
-    GsIntConfig,
     GsListConfig,
     GsListStrConfig,
-    GsStrConfig,
 )
 
 CONFIG_DEFAULT: Dict[str, GSC] = {
@@ -90,19 +90,13 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "有token才能进排行",
         False,
     ),
-    "GachaRankMin": GsIntConfig(
-        "抽卡排行最小抽数阈值",
-        "抽卡排行中只显示总抽数达到此阈值的玩家",
-        1000
-    ),
+    "GachaRankMin": GsIntConfig("抽卡排行最小抽数阈值", "抽卡排行中只显示总抽数达到此阈值的玩家", 1000),
     "DelInvalidCookie": GsBoolConfig(
         "每天定时删除无效token",
         "每天定时删除无效token",
         False,
     ),
-    "AnnMinuteCheck": GsIntConfig(
-        "公告推送时间检测（单位min）", "公告推送时间检测（单位min）", 10, 60
-    ),
+    "AnnMinuteCheck": GsIntConfig("公告推送时间检测（单位min）", "公告推送时间检测（单位min）", 10, 60),
     "RefreshInterval": GsIntConfig(
         "刷新面板间隔，重启生效（单位秒）",
         "刷新面板间隔，重启生效（单位秒）",
@@ -124,9 +118,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "是否可以使用uid直接查询练度",
         True,
     ),
-    "MaxBindNum": GsIntConfig(
-        "绑定特征码限制数量（未登录）", "绑定特征码限制数量（未登录）", 2, 100
-    ),
+    "MaxBindNum": GsIntConfig("绑定特征码限制数量（未登录）", "绑定特征码限制数量（未登录）", 2, 100),
     "WavesToken": GsStrConfig(
         "鸣潮全排行token",
         "鸣潮全排行token",

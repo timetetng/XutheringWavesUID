@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from typing import Dict, List, Optional
 
 from msgspec import json as msgjson
@@ -7,13 +6,14 @@ from msgspec import json as msgjson
 from gsuid_core.logger import logger
 
 from ..utils.resource.RESOURCE_PATH import (
+    MAP_PATH,
+    MAP_ALIAS_PATH,
     CUSTOM_CHAR_ALIAS_PATH,
     CUSTOM_ECHO_ALIAS_PATH,
     CUSTOM_SONATA_ALIAS_PATH,
     CUSTOM_WEAPON_ALIAS_PATH,
-    MAP_PATH,
-    MAP_ALIAS_PATH,
 )
+
 # 别名数据已移动到 resource/map/alias
 ALIAS_LIST = MAP_ALIAS_PATH
 CHAR_ALIAS = ALIAS_LIST / "char_alias.json"
@@ -53,9 +53,7 @@ def load_alias_data():
     if CUSTOM_CHAR_ALIAS_PATH.exists():
         try:
             with open(CUSTOM_CHAR_ALIAS_PATH, "r", encoding="UTF-8") as f:
-                custom_char_alias_data = msgjson.decode(
-                    f.read(), type=Dict[str, List[str]]
-                )
+                custom_char_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
         except Exception as e:
             logger.exception(f"读取自定义角色别名失败 {CUSTOM_CHAR_ALIAS_PATH} - {e}")
             custom_char_alias_data = {}
@@ -65,37 +63,27 @@ def load_alias_data():
     if CUSTOM_SONATA_ALIAS_PATH.exists():
         try:
             with open(CUSTOM_SONATA_ALIAS_PATH, "r", encoding="UTF-8") as f:
-                custom_sonata_alias_data = msgjson.decode(
-                    f.read(), type=Dict[str, List[str]]
-                )
+                custom_sonata_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
         except Exception as e:
             logger.exception(f"读取自定义合鸣别名失败 {CUSTOM_SONATA_ALIAS_PATH} - {e}")
             custom_sonata_alias_data = {}
 
-        sonata_alias_data = add_dictionaries(
-            sonata_alias_data, custom_sonata_alias_data
-        )
+        sonata_alias_data = add_dictionaries(sonata_alias_data, custom_sonata_alias_data)
 
     if CUSTOM_WEAPON_ALIAS_PATH.exists():
         try:
             with open(CUSTOM_WEAPON_ALIAS_PATH, "r", encoding="UTF-8") as f:
-                custom_weapon_alias_data = msgjson.decode(
-                    f.read(), type=Dict[str, List[str]]
-                )
+                custom_weapon_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
         except Exception as e:
             logger.exception(f"读取自定义武器别名失败 {CUSTOM_WEAPON_ALIAS_PATH} - {e}")
             custom_weapon_alias_data = {}
 
-        weapon_alias_data = add_dictionaries(
-            weapon_alias_data, custom_weapon_alias_data
-        )
+        weapon_alias_data = add_dictionaries(weapon_alias_data, custom_weapon_alias_data)
 
     if CUSTOM_ECHO_ALIAS_PATH.exists():
         try:
             with open(CUSTOM_ECHO_ALIAS_PATH, "r", encoding="UTF-8") as f:
-                custom_echo_alias_data = msgjson.decode(
-                    f.read(), type=Dict[str, List[str]]
-                )
+                custom_echo_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
         except Exception as e:
             logger.exception(f"读取自定义声骸别名失败 {CUSTOM_ECHO_ALIAS_PATH} - {e}")
             custom_echo_alias_data = {}

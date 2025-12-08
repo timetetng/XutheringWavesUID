@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from PIL import Image
+
 from gsuid_core.models import Event
 from gsuid_core.utils.image.image_tools import crop_center_img
 

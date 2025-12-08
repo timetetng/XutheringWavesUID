@@ -1,13 +1,12 @@
 import copy
-from pathlib import Path
-from typing import Optional, Union
+from typing import Union, Optional
 
 from msgspec import json as msgjson
 
 from gsuid_core.logger import logger
 
-from ..ascension.constant import fixed_name
 from .model import WeaponModel
+from ..ascension.constant import fixed_name
 from ..resource.RESOURCE_PATH import MAP_DETAIL_PATH
 
 MAP_PATH = MAP_DETAIL_PATH / "weapon"

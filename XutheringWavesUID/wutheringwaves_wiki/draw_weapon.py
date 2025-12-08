@@ -1,40 +1,38 @@
 import textwrap
-from pathlib import Path
 from typing import Optional
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
+from ..utils.image import (
+    SPECIAL_GOLD,
+    add_footer,
+    get_weapon_type,
+    get_crop_waves_bg,
+    get_square_weapon,
+    get_attribute_prop,
+)
+from ..utils.name_convert import alias_to_weapon_name
 from ..utils.ascension.model import WeaponModel
 from ..utils.ascension.weapon import (
     get_weapon_id,
-    get_weapon_model,
     get_weapon_star,
+    get_weapon_model,
 )
 from ..utils.fonts.waves_fonts import (
     waves_font_30,
     waves_font_40,
     waves_font_origin,
 )
-from ..utils.image import (
-    SPECIAL_GOLD,
-    add_footer,
-    get_attribute_prop,
-    get_crop_waves_bg,
-    get_square_weapon,
-    get_weapon_type,
-)
-from ..utils.name_convert import alias_to_weapon_name
 from ..utils.resource.download_file import get_material_img
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
 
-async def parse_weapon_base_content(
-    weapon_id, weapon_model: WeaponModel, image, card_img
-):
+async def parse_weapon_base_content(weapon_id, weapon_model: WeaponModel, image, card_img):
     # 提取名称
     weapon_name = weapon_model.name
 
@@ -43,9 +41,7 @@ async def parse_weapon_base_content(
 
     # 提取“稀有度”
     rarity_pic = Image.open(TEXT_PATH / f"rarity_{weapon_model.starLevel}.png")
-    rarity_pic = rarity_pic.resize(
-        (180, int(180 / rarity_pic.size[0] * rarity_pic.size[1]))
-    )
+    rarity_pic = rarity_pic.resize((180, int(180 / rarity_pic.size[0] * rarity_pic.size[1])))
     # weapon 图片
     weapon_pic = await get_square_weapon(weapon_id)
     weapon_pic = crop_center_img(weapon_pic, 110, 110)
@@ -76,12 +72,8 @@ async def parse_weapon_statistic_content(weapon_model: WeaponModel, weapon_image
         stats_main = await get_attribute_prop(row[0])
         stats_main = stats_main.resize((40, 40))
         weapon_bg_temp.alpha_composite(stats_main, (65, 187 + index * 50))
-        weapon_bg_temp_draw.text(
-            (130, 207 + index * 50), f"{row[0]}", "white", waves_font_30, "lm"
-        )
-        weapon_bg_temp_draw.text(
-            (500, 207 + index * 50), f"{row[1]}", "white", waves_font_30, "rm"
-        )
+        weapon_bg_temp_draw.text((130, 207 + index * 50), f"{row[0]}", "white", waves_font_30, "lm")
+        weapon_bg_temp_draw.text((500, 207 + index * 50), f"{row[1]}", "white", waves_font_30, "rm")
 
     weapon_bg_temp = weapon_bg_temp.resize((350, 175))
     weapon_image.alpha_composite(weapon_bg_temp, (10, 200))
@@ -90,12 +82,8 @@ async def parse_weapon_statistic_content(weapon_model: WeaponModel, weapon_image
 async def parse_weapon_material_content(weapon_model: WeaponModel, card_img):
     material_img = Image.new("RGBA", (300, 150))
     material_img_draw = ImageDraw.Draw(material_img)
-    material_img_draw.rounded_rectangle(
-        [20, 20, 280, 130], radius=20, fill=(0, 0, 0, int(0.3 * 255))
-    )
-    material_img_draw.text(
-        (40, 20), "突破材料", SPECIAL_GOLD, waves_font_origin(24), "lm"
-    )
+    material_img_draw.rounded_rectangle([20, 20, 280, 130], radius=20, fill=(0, 0, 0, int(0.3 * 255)))
+    material_img_draw.text((40, 20), "突破材料", SPECIAL_GOLD, waves_font_origin(24), "lm")
     index = 0
     for material_id in weapon_model.get_ascensions_max_list():
         material = await get_material_img(material_id)
@@ -125,9 +113,7 @@ async def parse_weapon_detail_content(weapon_model: WeaponModel, card_img):
 
     image = Image.new("RGBA", (650, 270), (255, 255, 255, 0))
     image_draw = ImageDraw.Draw(image)
-    image_draw.rounded_rectangle(
-        [20, 20, 630, 250], radius=20, fill=(0, 0, 0, int(0.3 * 255))
-    )
+    image_draw.rounded_rectangle([20, 20, 630, 250], radius=20, fill=(0, 0, 0, int(0.3 * 255)))
     title = weapon_model.effectName
     desc = weapon_model.get_effect_detail()
 
@@ -141,12 +127,8 @@ async def parse_weapon_detail_content(weapon_model: WeaponModel, card_img):
 
     # 计算总的绘制高度
     total_text_height = y_padding + block_line_spacing + shadow_radius * 2
-    total_text_height += len(lines_title) * (
-        title_font_size + line_spacing
-    )  # 标题部分的总高度
-    total_text_height += len(lines_desc) * (
-        detail_font_size + line_spacing
-    )  # 描述部分的总高度
+    total_text_height += len(lines_title) * (title_font_size + line_spacing)  # 标题部分的总高度
+    total_text_height += len(lines_desc) * (detail_font_size + line_spacing)  # 描述部分的总高度
 
     # 绘制标题文本
     y_offset = y_padding + shadow_radius

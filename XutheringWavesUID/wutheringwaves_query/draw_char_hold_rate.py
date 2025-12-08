@@ -1,7 +1,7 @@
-import asyncio
 import copy
-from pathlib import Path
+import asyncio
 from typing import Dict, Union
+from pathlib import Path
 
 import httpx
 from PIL import Image, ImageDraw
@@ -10,6 +10,17 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
+from ..utils.util import timed_async_cache
+from ..utils.image import (
+    GOLD,
+    SPECIAL_GOLD,
+    CHAIN_COLOR_LIST,
+    get_ICON,
+    add_footer,
+    get_waves_bg,
+    get_attribute,
+    get_square_avatar,
+)
 from ..utils.api.wwapi import GET_HOLD_RATE_URL
 from ..utils.ascension.char import get_char_model
 from ..utils.char_info_utils import get_all_role_detail_info_list
@@ -20,23 +31,12 @@ from ..utils.fonts.waves_fonts import (
     waves_font_36,
     waves_font_58,
 )
-from ..utils.image import (
-    CHAIN_COLOR_LIST,
-    GOLD,
-    SPECIAL_GOLD,
-    add_footer,
-    get_attribute,
-    get_ICON,
-    get_square_avatar,
-    get_waves_bg,
-)
 from ..utils.resource.constant import (
-    ATTRIBUTE_ID_MAP,
     NORMAL_LIST,
     NORMAL_LIST_IDS,
+    ATTRIBUTE_ID_MAP,
     SPECIAL_CHAR_NAME,
 )
-from ..utils.util import timed_async_cache
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 bar1 = Image.open(TEXT_PATH / "bar1.png")
@@ -98,9 +98,7 @@ async def new_draw_char_hold_rate(ev: Event, data, group_id: str = "") -> bytes:
     footer_height = 50
 
     # 计算所需的总高度
-    total_height = (
-        header_height + item_spacing * len(char_list) + margin * 2 + footer_height
-    )
+    total_height = header_height + item_spacing * len(char_list) + margin * 2 + footer_height
 
     # 创建带背景的画布 - 使用bg9
     img = get_waves_bg(width, total_height, "bg9")
@@ -126,11 +124,7 @@ async def new_draw_char_hold_rate(ev: Event, data, group_id: str = "") -> bytes:
     title_mask_draw.text((300, 430), title_text, "white", waves_font_58, "lm")
 
     # count
-    title = (
-        f"样本数量: {data.get('total_player_count', 0)} 人"
-        if group_id
-        else "11.27后全部用户持有率"
-    )
+    title = f"样本数量: {data.get('total_player_count', 0)} 人" if group_id else "11.27后全部用户持有率"
     title_mask_draw.text(
         (300, 500),
         title,
@@ -186,13 +180,9 @@ async def new_draw_char_hold_rate(ev: Event, data, group_id: str = "") -> bytes:
             temp_bg_draw = ImageDraw.Draw(temp_bg)
 
             c_color_hex = CHAIN_COLOR_LIST[i]
-            temp_bg_draw.rounded_rectangle(
-                (35, 0, 125, 30), 8, fill=c_color_hex + (100,)
-            )
+            temp_bg_draw.rounded_rectangle((35, 0, 125, 30), 8, fill=c_color_hex + (100,))
             temp_bg_draw.text((0, 15), chain_text, "white", waves_font_20, "lm")
-            temp_bg_draw.text(
-                (80, 15), f"{c_percent:.2f}%", "white", waves_font_20, "mm"
-            )
+            temp_bg_draw.text((80, 15), f"{c_percent:.2f}%", "white", waves_font_20, "mm")
 
             bar_bg.alpha_composite(temp_bg, (310 + i * 135, 26))
 
@@ -210,9 +200,7 @@ async def new_draw_char_hold_rate(ev: Event, data, group_id: str = "") -> bytes:
         elif char_model.starLevel == 4:
             color = STAR_FOUR
 
-        hole_progress_bg_draw.rounded_rectangle(
-            (0, 0, real_length, 24), 15, fill=color + (170,)
-        )
+        hole_progress_bg_draw.rounded_rectangle((0, 0, real_length, 24), 15, fill=color + (170,))
         if hold_rate < 10:
             xy = (real_length + 50, 12)
         else:

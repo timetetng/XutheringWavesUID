@@ -1,8 +1,8 @@
 from typing import Any, List
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
 from ..utils.button import WavesButton
 from .draw_calendar_card import draw_calendar_img
@@ -10,7 +10,7 @@ from .draw_calendar_card import draw_calendar_img
 sv_waves_calendar = SV("waves日历")
 
 
-@sv_waves_calendar.on_fullmatch((f"个人日历", f"日历"), block=True)
+@sv_waves_calendar.on_fullmatch(("个人日历", "日历"), block=True)
 async def send_waves_calendar_pic(bot: Bot, ev: Event):
     uid = ""
     im = await draw_calendar_img(ev, uid)

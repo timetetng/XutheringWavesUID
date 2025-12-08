@@ -1,7 +1,7 @@
-from collections import defaultdict
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Union
+from pathlib import Path
+from datetime import datetime
+from collections import defaultdict
 
 import httpx
 from PIL import Image, ImageDraw
@@ -9,21 +9,21 @@ from PIL import Image, ImageDraw
 from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 
-from ..utils.api.wwapi import GET_POOL_LIST
-from ..utils.fonts.waves_fonts import waves_font_30, waves_font_58
+from .model import WavesPool
+from ..utils.util import timed_async_cache
 from ..utils.image import (
     SPECIAL_GOLD,
     WAVES_MOLTEN,
-    add_footer,
     get_ICON,
-    get_random_share_bg,
+    add_footer,
+    get_waves_bg,
     get_square_avatar,
     get_square_weapon,
-    get_waves_bg,
+    get_random_share_bg,
 )
+from ..utils.api.wwapi import GET_POOL_LIST
 from ..utils.name_convert import easy_id_to_name
-from ..utils.util import timed_async_cache
-from .model import WavesPool
+from ..utils.fonts.waves_fonts import waves_font_30, waves_font_58
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 bar = Image.open(TEXT_PATH / "bar.png")
@@ -123,7 +123,6 @@ async def clean_pool_data():
 
 
 async def get_pool_data_by_type(query_type: str, star: int):
-
     result_char, result_weapon = await clean_pool_data()
 
     if not result_char or not result_weapon:
@@ -236,19 +235,13 @@ async def draw_pool_char(
             bar_star_draw.text((300, 50), char_name, color, waves_font_30, "mm")
 
         # up 次数
-        bar_star_draw.text(
-            (500, 50), f"UP次数: {up_time}", "white", waves_font_30, "mm"
-        )
+        bar_star_draw.text((500, 50), f"UP次数: {up_time}", "white", waves_font_30, "mm")
 
         # 倒计时
         if end_time >= 0:
-            bar_star_draw.text(
-                (800, 50), f"{seconds_to_human(end_time)}", color, waves_font_30, "mm"
-            )
+            bar_star_draw.text((800, 50), f"{seconds_to_human(end_time)}", color, waves_font_30, "mm")
         else:
-            bar_star_draw.text(
-                (800, 50), f"{seconds_to_human(end_time)}", color, waves_font_30, "mm"
-            )
+            bar_star_draw.text((800, 50), f"{seconds_to_human(end_time)}", color, waves_font_30, "mm")
 
         card_img.paste(bar_bg, (-20, i * 110 + 530), bar_bg)
 

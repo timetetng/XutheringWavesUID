@@ -1,6 +1,6 @@
 import asyncio
-from pathlib import Path
 from typing import List, Union
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -8,7 +8,16 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
+from .slash_rank import get_avatar
+from ..utils.image import (
+    RED,
+    SPECIAL_GOLD,
+    get_ICON,
+    add_footer,
+    get_waves_bg,
+)
 from ..utils.database.models import WavesBind
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..utils.fonts.waves_fonts import (
     waves_font_18,
     waves_font_20,
@@ -16,16 +25,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_34,
     waves_font_58,
 )
-from ..utils.image import (
-    RED,
-    SPECIAL_GOLD,
-    add_footer,
-    get_ICON,
-    get_waves_bg,
-)
-from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..wutheringwaves_gachalog.draw_gachalogs import get_gacha_stats
-from .slash_rank import get_avatar
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 avatar_mask = Image.open(TEXT_PATH / "avatar_mask.png")
@@ -99,21 +99,15 @@ async def get_all_gacha_rank_info(users: List[WavesBind], bot_id: str) -> List[G
 async def get_gacha_rank_token_condition(ev):
     """检查抽卡排行的权限配置"""
     # 群组 不限制token
-    WavesRankNoLimitGroup = WutheringWavesConfig.get_config(
-        "WavesRankNoLimitGroup"
-    ).data
+    WavesRankNoLimitGroup = WutheringWavesConfig.get_config("WavesRankNoLimitGroup").data
     if WavesRankNoLimitGroup and ev.group_id in WavesRankNoLimitGroup:
         return True
 
     # 群组 自定义的
-    WavesRankUseTokenGroup = WutheringWavesConfig.get_config(
-        "WavesRankUseTokenGroup"
-    ).data
+    WavesRankUseTokenGroup = WutheringWavesConfig.get_config("WavesRankUseTokenGroup").data
     # 全局 主人定义的
     RankUseToken = WutheringWavesConfig.get_config("RankUseToken").data
-    if (
-        WavesRankUseTokenGroup and ev.group_id in WavesRankUseTokenGroup
-    ) or RankUseToken:
+    if (WavesRankUseTokenGroup and ev.group_id in WavesRankUseTokenGroup) or RankUseToken:
         return True
 
     return False
@@ -143,9 +137,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
         msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
         if tokenLimitFlag:
-            msg.append(
-                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
-            )
+            msg.append(f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！")
         return "\n".join(msg)
 
     rankInfoList = await get_all_gacha_rank_info(list(users), ev.bot_id)
@@ -154,9 +146,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无抽卡排行数据")
         msg.append(f"请使用【{PREFIX}导入抽卡记录】后再使用此功能！")
         if tokenLimitFlag:
-            msg.append(
-                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
-            )
+            msg.append(f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！")
         return "\n".join(msg)
 
     # 按加权抽数排序（分数越低越欧，反向排序则是非）
@@ -192,9 +182,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     footer_height = 50
 
     # 计算所需的总高度
-    total_height = (
-        header_height + text_bar_height + item_spacing * len(rankInfoList_display) + footer_height
-    )
+    total_height = header_height + text_bar_height + item_spacing * len(rankInfoList_display) + footer_height
 
     # 创建带背景的画布
     card_img = get_waves_bg(width, total_height, "bg9")
@@ -204,9 +192,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
     text_bar_draw = ImageDraw.Draw(text_bar_img)
     # 绘制深灰色背景
     bar_bg_color = (36, 36, 41, 230)
-    text_bar_draw.rounded_rectangle(
-        [20, 20, width - 40, 110], radius=8, fill=bar_bg_color
-    )
+    text_bar_draw.rounded_rectangle([20, 20, width - 40, 110], radius=8, fill=bar_bg_color)
 
     # 绘制顶部的金色高亮线
     accent_color = (203, 161, 95)
@@ -281,9 +267,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         def draw_rank_id(rank_id, size=(50, 50), draw=(24, 24), dest=(40, 30)):
             info_rank = Image.new("RGBA", size, color=(255, 255, 255, 0))
             rank_draw = ImageDraw.Draw(info_rank)
-            rank_draw.rounded_rectangle(
-                [0, 0, size[0], size[1]], radius=8, fill=rank_color + (int(0.9 * 255),)
-            )
+            rank_draw.rounded_rectangle([0, 0, size[0], size[1]], radius=8, fill=rank_color + (int(0.9 * 255),))
             rank_draw.text(draw, f"{rank_id}", "white", waves_font_34, "mm")
             role_bg.alpha_composite(info_rank, dest)
 
@@ -303,9 +287,7 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
         uid_color = "white"
         if rankInfo.uid == self_uid:
             uid_color = RED
-        role_bg_draw.text(
-            (210, 70), f"{rankInfo.uid}", uid_color, waves_font_20, "lm"
-        )
+        role_bg_draw.text((210, 70), f"{rankInfo.uid}", uid_color, waves_font_20, "lm")
 
         # UP平均抽数
         role_bg_draw.text((460, 30), "UP", SPECIAL_GOLD, waves_font_20, "mm")

@@ -1,14 +1,14 @@
 import re
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..utils.at_help import ruser_id
-from ..utils.database.models import WavesBind
-from ..utils.error_reply import WAVES_CODE_103
 from ..utils.hint import error_reply
+from ..utils.at_help import ruser_id
 from .draw_char_list import draw_char_list_img
+from ..utils.error_reply import WAVES_CODE_103
+from ..utils.database.models import WavesBind
 
 sv_waves_char_list = SV("ww角色练度统计")
 
@@ -48,9 +48,7 @@ async def send_char_list_msg_new(bot: Bot, ev: Event):
 
     if not is_peek:
         # 更新groupid
-        await WavesBind.insert_waves_uid(
-            user_id, ev.bot_id, query_waves_id, ev.group_id, lenth_limit=9
-        )
+        await WavesBind.insert_waves_uid(user_id, ev.bot_id, query_waves_id, ev.group_id, lenth_limit=9)
 
     im = await draw_char_list_img(
         query_waves_id,

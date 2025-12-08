@@ -1,9 +1,9 @@
+from typing import Any, Dict, List, Union, Literal, Optional
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Union
 
+from .constants import spectro_frazzle_effect_atk, onlineLevel2EquivalentLevel
 from ...utils.api.model import RoleDetailData
 from ...utils.damage.utils import AbnormalType, parse_skill_multi
-from .constants import onlineLevel2EquivalentLevel, spectro_frazzle_effect_atk
 
 
 class WavesEffect(object):
@@ -219,9 +219,7 @@ class DamageAttribute:
         # 声骸技能id
         self.echo_id = echo_id
         # 角色属性 ["冷凝", "衍射", "导电", "热熔", "气动", "湮灭"]
-        self.char_attr: Optional[
-            Literal["冷凝", "衍射", "导电", "热熔", "气动", "湮灭"]
-        ] = char_attr
+        self.char_attr: Optional[Literal["冷凝", "衍射", "导电", "热熔", "气动", "湮灭"]] = char_attr
         # 角色属性伤害  attack_damage,hit_damage,skill_damage,liberation_damage,heal_bonus
         self.char_damage = char_damage
         # 协同攻击
@@ -254,9 +252,7 @@ class DamageAttribute:
         self.abnormalType = None
 
         if enemy_resistance:
-            self.add_enemy_resistance(
-                enemy_resistance, "敌人抗性", f"{enemy_resistance:.0%}"
-            )
+            self.add_enemy_resistance(enemy_resistance, "敌人抗性", f"{enemy_resistance:.0%}")
         self.set_enemy_level(enemy_level)
 
     def __str__(self):
@@ -332,15 +328,11 @@ class DamageAttribute:
 
         return self
 
-    def set_char_template(
-        self, char_template: Literal["temp_atk", "temp_life", "temp_def"]
-    ):
+    def set_char_template(self, char_template: Literal["temp_atk", "temp_life", "temp_def"]):
         self.char_template = char_template
         return self
 
-    def set_char_attr(
-        self, char_attr: Literal["冷凝", "衍射", "导电", "热熔", "气动", "湮灭"]
-    ):
+    def set_char_attr(self, char_attr: Literal["冷凝", "衍射", "导电", "热熔", "气动", "湮灭"]):
         self.char_attr = char_attr
         return self
 
@@ -426,9 +418,7 @@ class DamageAttribute:
         self.add_effect(title, msg)
         return self
 
-    def add_healing_skill_multi(
-        self, healing_skill_multi: Union[str, float], title="", msg=""
-    ):
+    def add_healing_skill_multi(self, healing_skill_multi: Union[str, float], title="", msg=""):
         """增加奶的技能倍率"""
         value1, percent1 = parse_skill_multi(self.healing_skill_multi)
         value2, percent2 = parse_skill_multi(healing_skill_multi)
@@ -441,9 +431,7 @@ class DamageAttribute:
         self.add_effect(title, msg)
         return self
 
-    def add_shield_skill_multi(
-        self, shield_skill_multi: Union[str, float], title="", msg=""
-    ):
+    def add_shield_skill_multi(self, shield_skill_multi: Union[str, float], title="", msg=""):
         """增加盾量的技能倍率"""
 
         value1, percent1 = parse_skill_multi(self.shield_skill_multi)
@@ -465,9 +453,7 @@ class DamageAttribute:
         self.add_effect(title, msg)
         return self
 
-    def add_skill_ratio_in_skill_description(
-        self, skill_ratio: Union[str, float], title="", msg=""
-    ):
+    def add_skill_ratio_in_skill_description(self, skill_ratio: Union[str, float], title="", msg=""):
         """增加技能倍率加成 -> 技能伤害倍率提升"""
         if isinstance(skill_ratio, str):
             skill_ratio = calc_percent_expression(skill_ratio)
@@ -666,9 +652,7 @@ class DamageAttribute:
         enemy_defense = self.enemy_level * 8 + 792
         # 计算公式为 (800 + 8 * 等级) / (800 + 8 * 等级 + 敌人防御 * (1 - 减防))
         return (800 + 8 * self.character_level) / (
-            800
-            + 8 * self.character_level
-            + enemy_defense * (1 - self.defense_reduction)
+            800 + 8 * self.character_level + enemy_defense * (1 - self.defense_reduction)
         )
 
     @property
@@ -737,18 +721,14 @@ class DamageAttribute:
         计算治疗量。
         """
         flat, percent = parse_skill_multi(self.healing_skill_multi)
-        return effect_value * (percent * 0.01) * (1 + self.dmg_bonus) + flat * (
-            1 + self.dmg_bonus
-        )
+        return effect_value * (percent * 0.01) * (1 + self.dmg_bonus) + flat * (1 + self.dmg_bonus)
 
     def calculate_shield(self, effect_value):
         """
         计算盾量。
         """
         flat, percent = parse_skill_multi(self.shield_skill_multi)
-        return effect_value * (percent * 0.01) * (1 + self.dmg_bonus) + flat * (
-            1 + self.dmg_bonus
-        )
+        return effect_value * (percent * 0.01) * (1 + self.dmg_bonus) + flat * (1 + self.dmg_bonus)
 
 
 class AbnormalSpectroFrazzle:

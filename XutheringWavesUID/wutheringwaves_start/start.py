@@ -8,11 +8,11 @@ from ..wutheringwaves_resource import startup
 async def all_start():
     logger.info("[鸣潮] 启动中...")
     try:
+        from ..utils.queues import init_queues
+        from ..utils.map.damage.register import register_rank, register_damage
         from ..utils.damage.register_char import register_char
         from ..utils.damage.register_echo import register_echo
         from ..utils.damage.register_weapon import register_weapon
-        from ..utils.map.damage.register import register_damage, register_rank
-        from ..utils.queues import init_queues
 
         # 注册
         register_weapon()

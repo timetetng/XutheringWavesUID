@@ -1,11 +1,11 @@
-import asyncio
 import random
+import asyncio
 
 from gsuid_core.gss import gss
 from gsuid_core.logger import logger
 from gsuid_core.subscribe import gs_subscribe
-from gsuid_core.utils.boardcast.models import BoardCastMsgDict
 from gsuid_core.utils.database.models import Subscribe
+from gsuid_core.utils.boardcast.models import BoardCastMsgDict
 
 board_type = {}
 
@@ -69,9 +69,7 @@ async def send_board_cast_msg(msgs: BoardCastMsgDict, board_cast_type: str):
                         )
                         await asyncio.sleep(0.5 + random.randint(1, 3))
                 else:
-                    bot_self_id = get_bot_self_id(
-                        "", group_msg_list[gid]["bot_id"], "group", gid
-                    )
+                    bot_self_id = get_bot_self_id("", group_msg_list[gid]["bot_id"], "group", gid)
                     await gss.active_bot[bot_id].target_send(
                         group_msg_list[gid]["messages"],
                         "group",

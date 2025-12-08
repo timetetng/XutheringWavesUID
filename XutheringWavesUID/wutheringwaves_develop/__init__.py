@@ -1,12 +1,10 @@
-import re
-
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..wutheringwaves_develop.develop import calc_develop_cost
 from ..utils.char_info_utils import PATTERN
+from ..wutheringwaves_develop.develop import calc_develop_cost
 
 role_develop = SV("waves角色培养")
 

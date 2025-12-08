@@ -1,28 +1,26 @@
-import re
-
 from PIL import Image
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 from gsuid_core.utils.image.convert import convert_img
 
-from ..utils.at_help import is_valid_at, ruser_id
-from ..utils.database.models import WavesBind
-from ..utils.error_reply import WAVES_CODE_103
 from ..utils.hint import error_reply
-from ..utils.name_convert import char_name_to_char_id
-from ..utils.resource.constant import SPECIAL_CHAR
-from ..utils.char_info_utils import PATTERN
-from .draw_char_card import draw_char_detail_img, draw_char_score_img
 from .upload_card import (
-    compress_all_custom_card,
-    delete_all_custom_card,
     delete_custom_card,
+    upload_custom_card,
     get_custom_card_list,
-    upload_custom_card
+    delete_all_custom_card,
+    compress_all_custom_card,
 )
+from ..utils.at_help import ruser_id, is_valid_at
+from .draw_char_card import draw_char_score_img, draw_char_detail_img
+from ..utils.error_reply import WAVES_CODE_103
+from ..utils.name_convert import char_name_to_char_id
+from ..utils.char_info_utils import PATTERN
+from ..utils.database.models import WavesBind
+from ..utils.resource.constant import SPECIAL_CHAR
 
 waves_upload_char = SV("waves上传面板图", priority=3, pm=1)
 waves_char_card_list = SV("waves面板图列表", priority=3, pm=1)
@@ -42,6 +40,7 @@ TYPE_MAP = {
     "背景": "bg",
     "体力": "stamina",
 }
+
 
 @waves_upload_char.on_regex(rf"^上传(?P<char>{PATTERN})(?P<type>面板|面包|🍞|体力|背景)图$", block=True)
 async def upload_char_img(bot: Bot, ev: Event):
@@ -81,8 +80,8 @@ async def delete_all_char_card(bot: Bot, ev: Event):
 @waves_compress_card.on_fullmatch(("压缩面板图", "压缩面包图", "压缩🍞图", "压缩背景图", "压缩体力图"), block=True)
 async def compress_char_card(bot: Bot, ev: Event):
     await compress_all_custom_card(bot, ev)
-    
-    
+
+
 @waves_new_get_char_info.on_fullmatch(
     (
         "刷新面板",
@@ -129,9 +128,7 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
         return
     char_id = char_name_to_char_id(char)
     if not char_id or len(char_id) != 4:
-        return await bot.send(
-            f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n"
-        )
+        return await bot.send(f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！\n")
     refresh_type = [char_id]
     if char_id in SPECIAL_CHAR:
         refresh_type = SPECIAL_CHAR.copy()[char_id]
@@ -145,9 +142,7 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
     from .draw_refresh_char_card import draw_refresh_char_detail_img
 
     buttons = []
-    msg = await draw_refresh_char_detail_img(
-        bot, ev, user_id, uid, buttons, refresh_type
-    )
+    msg = await draw_refresh_char_detail_img(bot, ev, user_id, uid, buttons, refresh_type)
     if isinstance(msg, str) or isinstance(msg, bytes):
         return await bot.send_option(msg, buttons)
 
@@ -199,9 +194,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
     logger.debug(f"[鸣潮] [角色面板] CHAR: {char} {ev.regex_dict}")
 
     if is_limit_query:
-        im = await draw_char_detail_img(
-            ev, "1", char, ev.user_id, is_limit_query=is_limit_query
-        )
+        im = await draw_char_detail_img(ev, "1", char, ev.user_id, is_limit_query=is_limit_query)
         if isinstance(im, str) or isinstance(im, bytes):
             return await bot.send(im)
         else:
@@ -210,9 +203,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
     at_sender = True if ev.group_id else False
     if is_pk:
         if not waves_id and not is_valid_at(ev):
-            return await bot.send(
-                f"[鸣潮] [角色面板] 角色【{char}】PK需要指定目标玩家!\n", at_sender
-            )
+            return await bot.send(f"[鸣潮] [角色面板] 角色【{char}】PK需要指定目标玩家!\n", at_sender)
 
         uid = await WavesBind.get_uid_by_game(ev.user_id, ev.bot_id)
         if not uid:
@@ -238,9 +229,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
         uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
         if not uid:
             return await bot.send(error_reply(WAVES_CODE_103))
-        im2 = await draw_char_detail_img(
-            ev, uid, char, user_id, waves_id, need_convert_img=False
-        )
+        im2 = await draw_char_detail_img(ev, uid, char, user_id, waves_id, need_convert_img=False)
         if isinstance(im2, str):
             return await bot.send(im2, at_sender)
 
@@ -248,9 +237,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
             return
 
         # 创建一个新的图片对象
-        new_im = Image.new(
-            "RGBA", (im1.size[0] + im2.size[0], max(im1.size[1], im2.size[1]))
-        )
+        new_im = Image.new("RGBA", (im1.size[0] + im2.size[0], max(im1.size[1], im2.size[1])))
 
         # 将两张图片粘贴到新图片对象上
         new_im.paste(im1, (0, 0))
@@ -262,12 +249,11 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
         uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
         if not uid:
             return await bot.send(error_reply(WAVES_CODE_103))
-        im = await draw_char_detail_img(
-            ev, uid, char, user_id, waves_id, change_list_regex=change_list_regex
-        )
+        im = await draw_char_detail_img(ev, uid, char, user_id, waves_id, change_list_regex=change_list_regex)
         at_sender = False
         if isinstance(im, str) or isinstance(im, bytes):
             return await bot.send(im, at_sender)
+
 
 @waves_new_char_detail.on_regex(rf"^(?P<waves_id>\d+)?(?P<char>{PATTERN})权重$", block=True)
 async def send_char_detail_msg2_weight(bot: Bot, ev: Event):

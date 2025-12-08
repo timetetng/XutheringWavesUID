@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Generator, Union
+from typing import Any, Dict, Union, Generator
 
 import aiofiles
 
@@ -8,9 +8,8 @@ from gsuid_core.logger import logger
 from ..utils.api.model import RoleDetailData
 from .resource.RESOURCE_PATH import PLAYER_PATH
 
-PATTERN = (
-    r"[\u4e00-\u9fa5a-zA-Z0-9\U0001F300-\U0001FAFF\U00002600-\U000027BF-—·()（）]+"
-)
+PATTERN = r"[\u4e00-\u9fa5a-zA-Z0-9\U0001F300-\U0001FAFF\U00002600-\U000027BF-—·()（）]+"
+
 
 async def get_all_role_detail_info_list(
     uid: str,

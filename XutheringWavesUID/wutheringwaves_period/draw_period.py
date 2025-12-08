@@ -1,25 +1,25 @@
 import asyncio
+from typing import Any, Dict, Union, Optional
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
 
 from PIL import Image, ImageDraw
 
+from gsuid_core.sv import get_plugin_available_prefix
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import get_plugin_available_prefix
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
-from ..utils.api.model import AccountBaseInfo, Period, PeriodDetail, PeriodList
+from ..utils.image import add_footer, get_waves_bg, get_event_avatar
+from ..utils.api.model import Period, PeriodList, PeriodDetail, AccountBaseInfo
+from ..utils.waves_api import waves_api
 from ..utils.database.models import WavesBind
 from ..utils.fonts.waves_fonts import (
     waves_font_24,
     waves_font_30,
     waves_font_36,
 )
-from ..utils.image import add_footer, get_event_avatar, get_waves_bg
-from ..utils.waves_api import waves_api
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -43,9 +43,7 @@ MSG_NO_PERIOD = "该特征码[{}]没有[{}]简报数据~"
 PREFIX = get_plugin_available_prefix("XutheringWavesUID")
 
 
-async def process_uid(
-    uid, ev, period_param: Optional[Union[int, str]]
-) -> Optional[Union[Dict[str, Any], str]]:
+async def process_uid(uid, ev, period_param: Optional[Union[int, str]]) -> Optional[Union[Dict[str, Any], str]]:
     ck = await waves_api.get_self_waves_ck(uid, ev.user_id, ev.bot_id)
     if not ck:
         return None
@@ -82,9 +80,7 @@ async def process_uid(
     if not period_node:
         return MSG_NO_PERIOD.format(uid, period_param)
 
-    period_detail = await waves_api.get_period_detail(
-        period_type, period_node.index, uid, ck
-    )
+    period_detail = await waves_api.get_period_detail(period_type, period_node.index, uid, ck)
     if not period_detail.success or not period_detail.data:
         return None
     period_detail = PeriodDetail.model_validate(period_detail.data)
@@ -125,9 +121,7 @@ async def draw_period_img(bot: Bot, ev: Event):
 
         # 开始绘图任务
         task = []
-        img = Image.new(
-            "RGBA", (based_w, based_h * len(valid_period_list)), (0, 0, 0, 0)
-        )
+        img = Image.new("RGBA", (based_w, based_h * len(valid_period_list)), (0, 0, 0, 0))
         for uid_index, valid in enumerate(valid_period_list):
             task.append(_draw_all_period_img(ev, img, valid, uid_index))
         await asyncio.gather(*task)
@@ -139,9 +133,7 @@ async def draw_period_img(bot: Bot, ev: Event):
     return res
 
 
-async def _draw_all_period_img(
-    ev: Event, img: Image.Image, valid: Dict[str, Any], uid_index: int
-):
+async def _draw_all_period_img(ev: Event, img: Image.Image, valid: Dict[str, Any], uid_index: int):
     period_img = await _draw_period_img(ev, valid)
     period_img = period_img.convert("RGBA")
     img.paste(period_img, (0, based_h * uid_index), period_img)
@@ -163,9 +155,7 @@ async def _draw_period_img(ev: Event, valid: Dict):
     title_img = Image.open(TEXT_PATH / "top-bg.png")
     title_img_draw = ImageDraw.Draw(title_img)
     title_img_draw.text((240, 75), f"{account_info.name}", "black", waves_font_36, "lm")
-    title_img_draw.text(
-        (240, 140), f"特征码: {account_info.id}", "black", waves_font_24, "lm"
-    )
+    title_img_draw.text((240, 140), f"特征码: {account_info.id}", "black", waves_font_24, "lm")
 
     avatar_img = await draw_pic_with_ring(ev)
     title_img.paste(avatar_img, (27, 8), avatar_img)
@@ -185,24 +175,18 @@ async def _draw_period_img(ev: Event, valid: Dict):
     # ico-sourct-tab.png
     icon_source_tab = Image.open(TEXT_PATH / "ico-sourct-tab.png")
     icon_souce_tab_draw = ImageDraw.Draw(icon_source_tab)
-    icon_souce_tab_draw.text(
-        (77, 25), f"{period_node.title}", "white", waves_font_30, "mm"
-    )
+    icon_souce_tab_draw.text((77, 25), f"{period_node.title}", "white", waves_font_30, "mm")
     home_bg.paste(icon_source_tab, (500, 60), icon_source_tab)
 
     # 绘制tab
     star_tab = Image.open(TEXT_PATH / "tab-star-bg.png")
     star_tab_draw = ImageDraw.Draw(star_tab)
     star_tab_draw.text((120, 35), "星声", "black", waves_font_24, "lm")
-    star_tab_draw.text(
-        (120, 80), f"{period_detail.totalStar}", "black", waves_font_30, "lm"
-    )
+    star_tab_draw.text((120, 80), f"{period_detail.totalStar}", "black", waves_font_30, "lm")
     coin_tab = Image.open(TEXT_PATH / "tab-coin-bg.png")
     coin_tab_draw = ImageDraw.Draw(coin_tab)
     coin_tab_draw.text((120, 30), "贝币", "black", waves_font_24, "lm")
-    coin_tab_draw.text(
-        (120, 80), f"{period_detail.totalCoin}", "black", waves_font_30, "lm"
-    )
+    coin_tab_draw.text((120, 80), f"{period_detail.totalCoin}", "black", waves_font_30, "lm")
 
     home_bg.paste(star_tab, (40, 115), star_tab)
     home_bg.paste(coin_tab, (380, 115), coin_tab)
@@ -213,11 +197,7 @@ async def _draw_period_img(ev: Event, valid: Dict):
 
     # 饼图数据
     pie_data = {
-        item.type: (
-            float(item.num / period_detail.totalStar * 100)
-            if period_detail.totalStar
-            else 0
-        )
+        item.type: (float(item.num / period_detail.totalStar * 100) if period_detail.totalStar else 0)
         for item in period_detail.starList
     }
     pie_data_num_map = {item.type: item.num for item in period_detail.starList}

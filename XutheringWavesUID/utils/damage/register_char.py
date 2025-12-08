@@ -1,22 +1,22 @@
+from .utils import (
+    CHAR_ATTR_VOID,
+    CHAR_ATTR_MOLTEN,
+    CHAR_ATTR_SIERRA,
+    CHAR_ATTR_SINKING,
+    CHAR_ATTR_FREEZING,
+    CHAR_ATTR_CELESTIAL,
+    temp_atk,
+    hit_damage,
+    skill_damage,
+    attack_damage,
+    cast_variation,
+    liberation_damage,
+)
+from .damage import DamageAttribute
 from ...utils.damage.abstract import (
     CharAbstract,
     WavesCharRegister,
     WavesWeaponRegister,
-)
-from .damage import DamageAttribute
-from .utils import (
-    CHAR_ATTR_CELESTIAL,
-    CHAR_ATTR_FREEZING,
-    CHAR_ATTR_MOLTEN,
-    CHAR_ATTR_SIERRA,
-    CHAR_ATTR_SINKING,
-    CHAR_ATTR_VOID,
-    attack_damage,
-    cast_variation,
-    hit_damage,
-    liberation_damage,
-    skill_damage,
-    temp_atk,
 )
 
 
@@ -323,7 +323,6 @@ class Char_1406(CharAbstract):
         resonLevel: int = 1,
         isGroup: bool = True,
     ):
-
         if attr.char_attr == CHAR_ATTR_SIERRA:
             #  血誓盟约
             title = "风主-血誓盟约"
@@ -623,7 +622,8 @@ class Char_1508(CharAbstract):
             method = getattr(w, "do_action", None)
             if callable(method):
                 method([cast_variation], attr, isGroup)
-            
+
+
 class Char_1601(CharAbstract):
     id = 1601
     name = "桃祈"

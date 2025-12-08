@@ -684,3 +684,4 @@ wutheringwaves_import
 *.so
 *.pyd
 waves_build
+.ruff_cache

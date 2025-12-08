@@ -1,7 +1,7 @@
 from gsuid_core.status.plugin_status import register_status
 
-from ..utils.database.models import WavesBind, WavesUser
 from ..utils.image import get_ICON
+from ..utils.database.models import WavesBind, WavesUser
 
 
 async def get_user_num():

@@ -1,25 +1,25 @@
-import asyncio
-import base64
 import copy
 import json
-from datetime import datetime
+import base64
+import asyncio
+from typing import Dict, List, Tuple, Union, Optional
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from datetime import datetime
 
-import aiofiles
 import msgspec
+import aiofiles
 
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
 
-from ..utils.api.model import GachaLog
-from ..utils.database.models import WavesUser
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
-from ..utils.waves_api import waves_api
-from ..version import XutheringWavesUID_version
-from ..wutheringwaves_config import PREFIX
 from .model import WWUIDGacha
+from ..version import XutheringWavesUID_version
+from ..utils.api.model import GachaLog
+from ..utils.waves_api import waves_api
+from ..utils.database.models import WavesUser
+from ..wutheringwaves_config import PREFIX
 from .model_for_waves_plugin import WavesPluginGacha
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
 
 gacha_type_meta_data = {
     "角色精准调谐": "1",
@@ -89,9 +89,7 @@ def find_longest_common_subarray_indices(
 
 
 # 根据最长公共子串递归合并两个GachaLog列表，不去重，按time排序
-def merge_gacha_logs_by_common_subarray(
-    a: List[GachaLog], b: List[GachaLog]
-) -> List[GachaLog]:
+def merge_gacha_logs_by_common_subarray(a: List[GachaLog], b: List[GachaLog]) -> List[GachaLog]:
     common_indices = find_longest_common_subarray_indices(a, b)
     if not common_indices:
         return sorted(
@@ -158,9 +156,7 @@ async def get_new_gachalog_for_file(
             continue
         gacha_name = cardPoolType
         gacha_log = [GachaLog(**log.dict()) for log in item]
-        new_gacha_log = merge_gacha_logs_by_common_subarray(
-            full_data[gacha_name], gacha_log
-        )
+        new_gacha_log = merge_gacha_logs_by_common_subarray(full_data[gacha_name], gacha_log)
         new[gacha_name] = new_gacha_log
         new_count[gacha_name] = len(new_gacha_log)
     return None, new, new_count
@@ -171,9 +167,7 @@ async def backup_gachalogs(uid: str, gachalogs_history: Dict, type: str):
     if not path.exists():
         path.mkdir(parents=True, exist_ok=True)
     # 备份
-    backup_path = (
-        path / f"{type}_gacha_logs_{datetime.now().strftime('%Y-%m-%d.%H%M%S')}.json"
-    )
+    backup_path = path / f"{type}_gacha_logs_{datetime.now().strftime('%Y-%m-%d.%H%M%S')}.json"
     async with aiofiles.open(backup_path, "w", encoding="UTF-8") as file:
         await file.write(json.dumps(gachalogs_history, ensure_ascii=False))
 
@@ -234,21 +228,19 @@ async def save_gachalogs(
         await backup_gachalogs(uid, temp_gachalogs_history, type="update")
 
     for gacha_name in gacha_type_meta_data.keys():
-        gachalogs_history[gacha_name] = [
-            GachaLog(**log) for log in gachalogs_history[gacha_name]
-        ]
+        gachalogs_history[gacha_name] = [GachaLog(**log) for log in gachalogs_history[gacha_name]]
 
     if record_id:
-        code, gachalogs_new, gachalogs_count_add = await get_new_gachalog(
-            uid, record_id, gachalogs_history, is_force
-        )
+        code, gachalogs_new, gachalogs_count_add = await get_new_gachalog(uid, record_id, gachalogs_history, is_force)
     elif not force_overwrite:
         code, gachalogs_new, gachalogs_count_add = await get_new_gachalog_for_file(
-            gachalogs_history, import_data  # type: ignore
+            gachalogs_history,
+            import_data,  # type: ignore
         )
     else:
         code, gachalogs_new, gachalogs_count_add = await get_new_gachalog_for_file(
-            import_data, import_data  # type: ignore
+            import_data,
+            import_data,  # type: ignore
         )
 
     if isinstance(code, str) or not gachalogs_new:
@@ -271,9 +263,7 @@ async def save_gachalogs(
 
                 # 如果第 i-1 个的时间小于第 i 个，说明顺序不对，舍弃 i-1 及之前的所有记录
                 if time_prev < time_current:
-                    logger.warning(
-                        f"[{gacha_name}] 发现时间顺序异常，舍弃索引 {i-1} 及之前的 {i} 条记录"
-                    )
+                    logger.warning(f"[{gacha_name}] 发现时间顺序异常，舍弃索引 {i - 1} 及之前的 {i} 条记录")
                     gachalogs_new[gacha_name] = logs[i:]
                     break
 
@@ -322,7 +312,7 @@ async def save_record_id(user_id, bot_id, uid, record_id):
         await WavesUser.insert_data(user_id, bot_id, record_id=record_id, uid=uid)
 
 
-async def import_gachalogs(ev: Event, history_url: str, type: str, uid: str, force_overwrite = False) -> str:
+async def import_gachalogs(ev: Event, history_url: str, type: str, uid: str, force_overwrite=False) -> str:
     history_data: Dict = {}
     if type == "json":
         history_data = json.loads(history_url)
@@ -403,9 +393,7 @@ async def export_gachalogs(uid: str) -> dict:
         for name, gachalogs in gachalogs_history.items():
             result["list"].extend(gachalogs)
 
-        async with aiofiles.open(
-            path / f"export_{uid}.json", "w", encoding="UTF-8"
-        ) as file:
+        async with aiofiles.open(path / f"export_{uid}.json", "w", encoding="UTF-8") as file:
             await file.write(json.dumps(result, ensure_ascii=False, indent=4))
 
         logger.success("[导出抽卡记录] 导出成功!")

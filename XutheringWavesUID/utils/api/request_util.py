@@ -1,11 +1,11 @@
 import asyncio
 from enum import IntEnum
-from typing import Any, Dict, Generic, Optional, TypeVar, Union
+from typing import Any, Dict, Union, Generic, TypeVar, Optional
 
 from pydantic import (
+    Field,
     BaseModel,
     ConfigDict,
-    Field,
     computed_field,
     model_validator,
 )
@@ -13,9 +13,9 @@ from pydantic import (
 from gsuid_core.logger import logger
 
 from ...utils.util import (
-    generate_random_string,
     get_public_ip,
     send_master_info,
+    generate_random_string,
 )
 
 KURO_VERSION = "2.8.0"

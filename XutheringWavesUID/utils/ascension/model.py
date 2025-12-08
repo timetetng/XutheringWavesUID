@@ -1,9 +1,9 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field, BaseModel
 
-from ...utils.resource.constant import ATTRIBUTE_ID_MAP
 from ...utils.util import format_with_defaults
+from ...utils.resource.constant import ATTRIBUTE_ID_MAP
 
 
 class Stats(BaseModel):
@@ -109,9 +109,7 @@ class WeaponModel(BaseModel):
         return rets
 
     def get_effect_detail(self):
-        return self.effect.format(
-            *["(" + "/".join(i) + ")" if len(set(i)) > 1 else i[0] for i in self.param]
-        )
+        return self.effect.format(*["(" + "/".join(i) + ")" if len(set(i)) > 1 else i[0] for i in self.param])
 
     def get_ascensions_max_list(self):
         for i in ["5", "4", "3", "2"]:

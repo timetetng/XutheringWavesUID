@@ -1,15 +1,15 @@
 import subprocess
 import unicodedata
-from pathlib import Path
 from typing import List, Tuple, Union
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 
-from ..utils.fonts.waves_fonts import emoji_font, waves_font_origin
 from ..utils.image import get_waves_bg
+from ..utils.fonts.waves_fonts import emoji_font, waves_font_origin
 
 
 def _get_git_logs() -> List[str]:

@@ -1,8 +1,8 @@
-import asyncio
 import time
-from datetime import datetime, timedelta
-from pathlib import Path
+import asyncio
 from typing import Dict
+from pathlib import Path
+from datetime import datetime, timedelta
 
 from PIL import Image, ImageDraw
 
@@ -12,10 +12,23 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
-from ..utils.api.model import AccountBaseInfo, DailyData
-from ..utils.api.request_util import KuroApiResp
-from ..utils.database.models import WavesBind, WavesUser
+from ..utils.image import (
+    RED,
+    GOLD,
+    GREY,
+    GREEN,
+    YELLOW,
+    add_footer,
+    get_event_avatar,
+    get_random_waves_bg,
+    get_random_waves_role_pile,
+)
+from ..utils.api.model import DailyData, AccountBaseInfo
+from ..utils.waves_api import waves_api
 from ..utils.error_reply import ERROR_CODE, WAVES_CODE_102, WAVES_CODE_103
+from ..utils.name_convert import char_name_to_char_id
+from ..utils.database.models import WavesBind, WavesUser
+from ..utils.api.request_util import KuroApiResp
 from ..utils.fonts.waves_fonts import (
     waves_font_24,
     waves_font_25,
@@ -24,20 +37,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_32,
     waves_font_42,
 )
-from ..utils.image import (
-    GOLD,
-    GREEN,
-    GREY,
-    RED,
-    YELLOW,
-    add_footer,
-    get_event_avatar,
-    get_random_waves_role_pile,
-    get_random_waves_bg
-)
-from ..utils.name_convert import char_name_to_char_id
 from ..utils.resource.constant import SPECIAL_CHAR
-from ..utils.waves_api import waves_api
 from ..wutheringwaves_config.wutheringwaves_config import ShowConfig
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -103,9 +103,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
 
         # 开始绘图任务
         task = []
-        img = Image.new(
-            "RGBA", (based_w, based_h * len(valid_daily_list)), (0, 0, 0, 0)
-        )
+        img = Image.new("RGBA", (based_w, based_h * len(valid_daily_list)), (0, 0, 0, 0))
         for uid_index, valid in enumerate(valid_daily_list):
             task.append(_draw_all_stamina_img(ev, img, valid, uid_index))
         await asyncio.gather(*task)
@@ -134,10 +132,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         sign_in_icon = NO
         sing_in_text = "今日未签到！"
 
-    if (
-        daily_info.livenessData.total != 0
-        and daily_info.livenessData.cur == daily_info.livenessData.total
-    ):
+    if daily_info.livenessData.total != 0 and daily_info.livenessData.cur == daily_info.livenessData.total:
         active_icon = YES
         active_text = "活跃度已满！"
     else:
@@ -153,29 +148,25 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     avatar = await draw_pic_with_ring(ev)
 
     # 随机获得pile
-    user = await WavesUser.get_user_by_attr(
-        ev.user_id, ev.bot_id, "uid", daily_info.roleId
-    )
+    user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "uid", daily_info.roleId)
     pile_id = None
     force_use_bg = False
     force_not_use_bg = False
     force_not_use_custom = False
-    
+
     if user and user.stamina_bg_value:
         force_use_bg = "背景" in user.stamina_bg_value
         force_not_use_bg = "立绘" in user.stamina_bg_value
         force_not_use_custom = "官方" in user.stamina_bg_value
-        stamina_bg_value = user.stamina_bg_value.replace("背景", "").replace("立绘", "").replace("官方", "").replace("图", "").strip()
+        stamina_bg_value = (
+            user.stamina_bg_value.replace("背景", "").replace("立绘", "").replace("官方", "").replace("图", "").strip()
+        )
         char_id = char_name_to_char_id(stamina_bg_value)
         if char_id in SPECIAL_CHAR:
-            ck = await waves_api.get_self_waves_ck(
-                daily_info.roleId, ev.user_id, ev.bot_id
-            )
+            ck = await waves_api.get_self_waves_ck(daily_info.roleId, ev.user_id, ev.bot_id)
             if ck:
                 for char_id in SPECIAL_CHAR[char_id]:
-                    role_detail_info = await waves_api.get_role_detail_info(
-                        char_id, daily_info.roleId, ck
-                    )
+                    role_detail_info = await waves_api.get_role_detail_info(char_id, daily_info.roleId, ck)
                     if not role_detail_info.success:
                         continue
                     role_detail_info = role_detail_info.data
@@ -191,7 +182,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
                     break
         else:
             pile_id = char_id
-    
+
     if force_use_bg:
         pile, has_bg = await get_random_waves_bg(pile_id, force_not_use_custom=force_not_use_custom)
     elif force_not_use_bg:
@@ -209,23 +200,19 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         ratio = max(target_w / bg_w, target_h / bg_h)
         new_size = (int(bg_w * ratio), int(bg_h * ratio))
         pile = pile.resize(new_size, Image.LANCZOS)
-        
+
         left = (pile.width - target_w) // 2
         top = (pile.height - target_h) // 2
         pile = pile.crop((left, top, left + target_w, top + target_h))
-        
+
         img.paste(pile, (0, 0))
-        
+
         info = Image.open(TEXT_PATH / "main_bar_bg.png").convert("RGBA")
 
     base_info_draw = ImageDraw.Draw(base_info_bg)
     # [恢复逻辑] Base Info 不加底色，直接绘制文字
-    base_info_draw.text(
-        (275, 120), f"{daily_info.roleName[:7]}", GREY, waves_font_30, "lm"
-    )
-    base_info_draw.text(
-        (226, 173), f"特征码:  {daily_info.roleId}", GOLD, waves_font_25, "lm"
-    )
+    base_info_draw.text((275, 120), f"{daily_info.roleName[:7]}", GREY, waves_font_30, "lm")
+    base_info_draw.text((226, 173), f"特征码:  {daily_info.roleId}", GOLD, waves_font_25, "lm")
     # 账号基本信息，由于可能会没有，放在一起
 
     title_bar = Image.open(TEXT_PATH / "title_bar.png")
@@ -233,10 +220,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     # [恢复逻辑] Title Bar 不加底色，直接绘制文字
     title_bar_draw.text((480, 125), "战歌重奏", GREY, waves_font_26, "mm")
     color = RED if account_info.weeklyInstCount != 0 else GREEN
-    if (
-        account_info.weeklyInstCountLimit is not None
-        and account_info.weeklyInstCount is not None
-    ):
+    if account_info.weeklyInstCountLimit is not None and account_info.weeklyInstCount is not None:
         title_bar_draw.text(
             (480, 78),
             f"{account_info.weeklyInstCountLimit - account_info.weeklyInstCount} / {account_info.weeklyInstCountLimit}",
@@ -270,18 +254,12 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     # 体力剩余恢复时间
     active_draw = ImageDraw.Draw(info)
     curr_time = int(time.time())
-    refreshTimeStamp = (
-        daily_info.energyData.refreshTimeStamp
-        if daily_info.energyData.refreshTimeStamp
-        else curr_time
-    )
+    refreshTimeStamp = daily_info.energyData.refreshTimeStamp if daily_info.energyData.refreshTimeStamp else curr_time
     # remain_time = await seconds2hours(refreshTimeStamp - curr_time)
 
     time_img = Image.new("RGBA", (180, 33), (255, 255, 255, 0))
     time_img_draw = ImageDraw.Draw(time_img)
-    time_img_draw.rounded_rectangle(
-        [5, 0, 180, 33], radius=15, fill=(186, 55, 42, int(0.7 * 255))
-    )
+    time_img_draw.rounded_rectangle([5, 0, 180, 33], radius=15, fill=(186, 55, 42, int(0.7 * 255)))
 
     if refreshTimeStamp != curr_time:
         date_from_timestamp = datetime.fromtimestamp(refreshTimeStamp)
@@ -289,17 +267,11 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         today = now.date()
         tomorrow = today + timedelta(days=1)
 
-        remain_time = datetime.fromtimestamp(refreshTimeStamp).strftime(
-            "%m.%d %H:%M:%S"
-        )
+        remain_time = datetime.fromtimestamp(refreshTimeStamp).strftime("%m.%d %H:%M:%S")
         if date_from_timestamp.date() == today:
-            remain_time = "今天 " + datetime.fromtimestamp(refreshTimeStamp).strftime(
-                "%H:%M:%S"
-            )
+            remain_time = "今天 " + datetime.fromtimestamp(refreshTimeStamp).strftime("%H:%M:%S")
         elif date_from_timestamp.date() == tomorrow:
-            remain_time = "明天 " + datetime.fromtimestamp(refreshTimeStamp).strftime(
-                "%H:%M:%S"
-            )
+            remain_time = "明天 " + datetime.fromtimestamp(refreshTimeStamp).strftime("%H:%M:%S")
 
         time_img_draw.text((10, 15), f"{remain_time}", "white", waves_font_24, "lm")
     else:
@@ -308,34 +280,32 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     info.alpha_composite(time_img, (280, 50))
 
     max_len = 345
-    
+
     if ShowConfig.get_config("MrUseBG") and has_bg:
         dark_bg_color = (16, 26, 54, int(0.4 * 255))
         # 体力 (Y=115)
-        active_draw.rounded_rectangle((342 - 18 * len(f"{daily_info.energyData.cur}"), 98, 430, 135), radius=15, fill=dark_bg_color)
+        active_draw.rounded_rectangle(
+            (342 - 18 * len(f"{daily_info.energyData.cur}"), 98, 430, 135), radius=15, fill=dark_bg_color
+        )
         # 结晶 (Y=230)
-        active_draw.rounded_rectangle((342 - 18 * len(f"{account_info.storeEnergy}"), 213, 430, 250), radius=15, fill=dark_bg_color)
+        active_draw.rounded_rectangle(
+            (342 - 18 * len(f"{account_info.storeEnergy}"), 213, 430, 250), radius=15, fill=dark_bg_color
+        )
         # 活跃度 (Y=350)
-        active_draw.rounded_rectangle((342 - 18 * len(f"{daily_info.livenessData.cur}"), 333, 430, 370), radius=15, fill=dark_bg_color)
+        active_draw.rounded_rectangle(
+            (342 - 18 * len(f"{daily_info.livenessData.cur}"), 333, 430, 370), radius=15, fill=dark_bg_color
+        )
 
     # 体力
-    active_draw.text(
-        (350, 115), f"/{daily_info.energyData.total}", GREY, waves_font_30, "lm"
-    )
-    active_draw.text(
-        (348, 115), f"{daily_info.energyData.cur}", GREY, waves_font_30, "rm"
-    )
+    active_draw.text((350, 115), f"/{daily_info.energyData.total}", GREY, waves_font_30, "lm")
+    active_draw.text((348, 115), f"{daily_info.energyData.cur}", GREY, waves_font_30, "rm")
     radio = daily_info.energyData.cur / daily_info.energyData.total
     color = RED if radio > 0.8 else YELLOW
     active_draw.rectangle((173, 142, int(173 + radio * max_len), 150), color)
 
     # 结晶单质
-    active_draw.text(
-        (350, 230), f"/{account_info.storeEnergyLimit}", GREY, waves_font_30, "lm"
-    )
-    active_draw.text(
-        (348, 230), f"{account_info.storeEnergy}", GREY, waves_font_30, "rm"
-    )
+    active_draw.text((350, 230), f"/{account_info.storeEnergyLimit}", GREY, waves_font_30, "lm")
+    active_draw.text((348, 230), f"{account_info.storeEnergy}", GREY, waves_font_30, "rm")
     radio = (
         account_info.storeEnergy / account_info.storeEnergyLimit
         if account_info.storeEnergyLimit is not None
@@ -347,17 +317,9 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     active_draw.rectangle((173, 254, int(173 + radio * max_len), 262), color)
 
     # 活跃度
-    active_draw.text(
-        (350, 350), f"/{daily_info.livenessData.total}", GREY, waves_font_30, "lm"
-    )
-    active_draw.text(
-        (348, 350), f"{daily_info.livenessData.cur}", GREY, waves_font_30, "rm"
-    )
-    radio = (
-        daily_info.livenessData.cur / daily_info.livenessData.total
-        if daily_info.livenessData.total != 0
-        else 0
-    )
+    active_draw.text((350, 350), f"/{daily_info.livenessData.total}", GREY, waves_font_30, "lm")
+    active_draw.text((348, 350), f"{daily_info.livenessData.cur}", GREY, waves_font_30, "rm")
+    radio = daily_info.livenessData.cur / daily_info.livenessData.total if daily_info.livenessData.total != 0 else 0
     active_draw.rectangle((173, 374, int(173 + radio * max_len), 382), YELLOW)
 
     # 签到状态
@@ -407,6 +369,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     img.paste(title_bar, (190, 620), title_bar)
     img = add_footer(img, 600, 25)
     return img
+
 
 async def draw_pic_with_ring(ev: Event):
     pic = await get_event_avatar(ev, is_valid_at_param=False)

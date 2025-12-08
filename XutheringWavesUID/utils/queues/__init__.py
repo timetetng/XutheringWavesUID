@@ -4,13 +4,13 @@ import httpx
 
 from gsuid_core.logger import logger
 
+from .const import QUEUE_SCORE_RANK, QUEUE_ABYSS_RECORD, QUEUE_SLASH_RECORD
+from .queues import event_handler, start_dispatcher
 from ..api.wwapi import (
+    UPLOAD_URL,
     UPLOAD_ABYSS_RECORD_URL,
     UPLOAD_SLASH_RECORD_URL,
-    UPLOAD_URL,
 )
-from .const import QUEUE_ABYSS_RECORD, QUEUE_SCORE_RANK, QUEUE_SLASH_RECORD
-from .queues import event_handler, start_dispatcher
 
 
 @event_handler(QUEUE_SCORE_RANK)

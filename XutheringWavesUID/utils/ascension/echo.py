@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Optional, Union
+from typing import Union, Optional
 
 from msgspec import json as msgjson
 

@@ -232,9 +232,7 @@ class RoleDetailData(BaseModel):
         skill_type: Literal["常态攻击", "共鸣技能", "共鸣解放", "变奏技能", "共鸣回路"],
     ):
         skill_level = 1
-        _skill = next(
-            (skill for skill in self.skillList if skill.skill.type == skill_type), None
-        )
+        _skill = next((skill for skill in self.skillList if skill.skill.type == skill_type), None)
         if _skill:
             skill_level = _skill.level - 1
         return skill_level

@@ -1,23 +1,23 @@
-import asyncio
 import json
-from typing import Dict, List, Optional, Union
+import asyncio
+from typing import Dict, List, Union, Optional
 
 import aiofiles
 
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
 
-from ..utils.api.model import AccountBaseInfo, RoleList
-from ..utils.error_reply import WAVES_CODE_101, WAVES_CODE_102
-from ..utils.expression_ctx import WavesCharRank, get_waves_char_rank
 from ..utils.hint import error_reply
+from ..utils.util import get_version
+from ..utils.api.model import RoleList, AccountBaseInfo
+from ..utils.waves_api import waves_api
+from .resource.constant import SPECIAL_CHAR_INT_ALL
+from ..utils.error_reply import WAVES_CODE_101, WAVES_CODE_102
 from ..utils.queues.const import QUEUE_SCORE_RANK
 from ..utils.queues.queues import push_item
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
-from ..utils.util import get_version
-from ..utils.waves_api import waves_api
+from ..utils.expression_ctx import WavesCharRank, get_waves_char_rank
 from ..wutheringwaves_config import WutheringWavesConfig
-from .resource.constant import SPECIAL_CHAR_INT_ALL
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
 
 
 def is_use_global_semaphore() -> bool:
@@ -71,15 +71,7 @@ async def send_card(
     if WavesToken:
         waves_char_rank = await get_waves_char_rank(uid, save_data, True)
 
-    if (
-        is_self_ck
-        and token
-        and waves_char_rank
-        and WavesToken
-        and role_info
-        and waves_data
-        and user_id
-    ):
+    if is_self_ck and token and waves_char_rank and WavesToken and role_info and waves_data and user_id:
         # 单角色上传排行
         if len(waves_data) != 1 and len(role_info.roleList) != len(save_data):
             logger.warning(
@@ -99,7 +91,9 @@ async def send_card(
             "user_id": user_id,
             "waves_id": f"{account_info.id}",
             "kuro_name": account_info.name,
-            "version": get_version(dynamic=True, user_id=user_id, waves_id=f"{account_info.id}", char_info=str(len(waves_char_rank))),
+            "version": get_version(
+                dynamic=True, user_id=user_id, waves_id=f"{account_info.id}", char_info=str(len(waves_char_rank))
+            ),
             "char_info": [r.to_rank_dict() for r in waves_char_rank],
             "role_num": account_info.roleNum,
             "single_refresh": 1 if len(waves_data) == 1 else 0,
@@ -244,30 +238,25 @@ async def refresh_char(
         tasks = [
             limited_get_role_detail_info(f"{r.roleId}", uid, ck)
             for r in role_info.roleList
-            if refresh_type == "all"
-            or (isinstance(refresh_type, list) and f"{r.roleId}" in refresh_type)
+            if refresh_type == "all" or (isinstance(refresh_type, list) and f"{r.roleId}" in refresh_type)
         ]
     else:
         if role_info.showRoleIdList:
             tasks = [
                 limited_get_role_detail_info(f"{r}", uid, ck)
                 for r in role_info.showRoleIdList
-                if refresh_type == "all"
-                or (isinstance(refresh_type, list) and f"{r}" in refresh_type)
+                if refresh_type == "all" or (isinstance(refresh_type, list) and f"{r}" in refresh_type)
             ]
         else:
             tasks = [
                 limited_get_role_detail_info(f"{r.roleId}", uid, ck)
                 for r in role_info.roleList
-                if refresh_type == "all"
-                or (isinstance(refresh_type, list) and f"{r.roleId}" in refresh_type)
+                if refresh_type == "all" or (isinstance(refresh_type, list) and f"{r.roleId}" in refresh_type)
             ]
     results = await asyncio.gather(*tasks)
 
     charId2chainNum: Dict[int, int] = {
-        r.roleId: r.chainUnlockNum
-        for r in role_info.roleList
-        if isinstance(r.chainUnlockNum, int)
+        r.roleId: r.chainUnlockNum for r in role_info.roleList if isinstance(r.chainUnlockNum, int)
     }
     # 处理返回的数据
     for role_detail_info in results:
@@ -304,10 +293,7 @@ async def refresh_char(
 
         # 修正合鸣效果
         try:
-            if (
-                role_detail_info["phantomData"]
-                and role_detail_info["phantomData"]["equipPhantomList"]
-            ):
+            if role_detail_info["phantomData"] and role_detail_info["phantomData"]["equipPhantomList"]:
                 for i in role_detail_info["phantomData"]["equipPhantomList"]:
                     if not isinstance(i, dict):
                         continue

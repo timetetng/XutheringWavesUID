@@ -1,8 +1,8 @@
-import asyncio
 import json
 import time
+import asyncio
+from typing import Dict, List, Union, Optional
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import aiofiles
 from PIL import Image, ImageDraw
@@ -12,18 +12,34 @@ from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
-from gsuid_core.utils.image.image_tools import crop_center_img
 
-from ..utils.api.model import RoleDetailData
-from ..utils.cache import TimedCache
+from .slash_rank import get_avatar
 from ..utils.calc import WuWaCalc
+from ..utils.cache import TimedCache
+from ..utils.image import (
+    RED,
+    GREY,
+    AMBER,
+    WAVES_VOID,
+    SPECIAL_GOLD,
+    WAVES_MOLTEN,
+    WAVES_SIERRA,
+    WAVES_MOONLIT,
+    WAVES_FREEZING,
+    WAVES_LINGERING,
+    get_ICON,
+    add_footer,
+    get_square_avatar,
+    get_custom_waves_bg,
+)
+from ..utils.api.model import RoleDetailData
 from ..utils.calculate import (
-    calc_phantom_score,
     get_calc_map,
+    calc_phantom_score,
 )
 from ..utils.char_info_utils import get_all_role_detail_info_list
 from ..utils.database.models import WavesBind
-from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..utils.fonts.waves_fonts import (
     waves_font_12,
     waves_font_16,
@@ -34,45 +50,21 @@ from ..utils.fonts.waves_fonts import (
     waves_font_34,
     waves_font_58,
 )
-from ..utils.image import (
-    AMBER,
-    GREY,
-    RED,
-    SPECIAL_GOLD,
-    WAVES_FREEZING,
-    WAVES_LINGERING,
-    WAVES_MOLTEN,
-    WAVES_MOONLIT,
-    WAVES_SIERRA,
-    WAVES_VOID,
-    add_footer,
-    get_ICON,
-    get_qq_avatar,
-    get_square_avatar,
-    get_custom_waves_bg,
-)
-from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
-from .slash_rank import get_avatar
+from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
 
 
 async def get_practice_rank_token_condition(ev):
     """检查练度排行的权限配置"""
     # 群组 不限制token
-    WavesRankNoLimitGroup = WutheringWavesConfig.get_config(
-        "WavesRankNoLimitGroup"
-    ).data
+    WavesRankNoLimitGroup = WutheringWavesConfig.get_config("WavesRankNoLimitGroup").data
     if WavesRankNoLimitGroup and ev.group_id in WavesRankNoLimitGroup:
         return True
 
     # 群组 自定义的
-    WavesRankUseTokenGroup = WutheringWavesConfig.get_config(
-        "WavesRankUseTokenGroup"
-    ).data
+    WavesRankUseTokenGroup = WutheringWavesConfig.get_config("WavesRankUseTokenGroup").data
     # 全局 主人定义的
     RankUseToken = WutheringWavesConfig.get_config("RankUseToken").data
-    if (
-        WavesRankUseTokenGroup and ev.group_id in WavesRankUseTokenGroup
-    ) or RankUseToken:
+    if (WavesRankUseTokenGroup and ev.group_id in WavesRankUseTokenGroup) or RankUseToken:
         return True
 
     return False
@@ -103,9 +95,7 @@ def calculate_role_phantom_score(role_detail: RoleDetailData) -> float:
     for _phantom in role_detail.phantomData.equipPhantomList:
         if _phantom and _phantom.phantomProp:
             props = _phantom.get_props()
-            _score, _ = calc_phantom_score(
-                role_detail.role.roleId, props, _phantom.cost, calc.calc_temp
-            )
+            _score, _ = calc_phantom_score(role_detail.role.roleId, props, _phantom.cost, calc.calc_temp)
             phantom_score += _score
 
     return phantom_score
@@ -296,9 +286,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无练度排行数据")
         msg.append(f"请使用【{PREFIX}刷新面板】后再使用此功能！")
         if tokenLimitFlag:
-            msg.append(
-                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
-            )
+            msg.append(f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！")
         msg.append("")
         return "\n".join(msg)
 
@@ -308,9 +296,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         msg.append(f"[鸣潮] 群【{ev.group_id}】暂无练度排行数据")
         msg.append(f"请使用【{PREFIX}刷新面板】后再使用此功能！")
         if tokenLimitFlag:
-            msg.append(
-                f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！"
-            )
+            msg.append(f"当前排行开启了登录验证，请使用命令【{PREFIX}登录】登录后此功能！")
         msg.append("")
         return "\n".join(msg)
 
@@ -358,9 +344,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
     char_list_len = len(rankInfoList_display)
 
     # 计算所需的总高度
-    total_height = (
-        header_height + text_bar_height + item_spacing * char_list_len + footer_height
-    )
+    total_height = header_height + text_bar_height + item_spacing * char_list_len + footer_height
 
     # 创建带背景的画布
     card_img = get_custom_waves_bg(width, total_height, "bg9")
@@ -369,9 +353,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
     text_bar_draw = ImageDraw.Draw(text_bar_img)
     # 绘制深灰色背景
     bar_bg_color = (36, 36, 41, 230)
-    text_bar_draw.rounded_rectangle(
-        [20, 20, width - 40, 120], radius=8, fill=bar_bg_color
-    )
+    text_bar_draw.rounded_rectangle([20, 20, width - 40, 120], radius=8, fill=bar_bg_color)
 
     # 绘制顶部的金色高亮线
     accent_color = (203, 161, 95)
@@ -386,9 +368,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         waves_font_20,
         "lm",
     )
-    text_bar_draw.text(
-        (185, 85), "2. 显示声骸分数最高的前8个角色", SPECIAL_GOLD, waves_font_20, "lm"
-    )
+    text_bar_draw.text((185, 85), "2. 显示声骸分数最高的前8个角色", SPECIAL_GOLD, waves_font_20, "lm")
 
     # 备注 - 排行标准，根据阈值动态生成文案
     temp_notes = f"排行标准：以所有角色声骸分数总和（角色分数>={threshold}（{threshold_label}级））为排序的综合排名"
@@ -427,9 +407,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         # 排名背景
         info_rank = Image.new("RGBA", (50, 50), color=(255, 255, 255, 0))
         rank_draw = ImageDraw.Draw(info_rank)
-        rank_draw.rounded_rectangle(
-            [0, 0, 50, 50], radius=8, fill=rank_color + (int(0.9 * 255),)
-        )
+        rank_draw.rounded_rectangle([0, 0, 50, 50], radius=8, fill=rank_color + (int(0.9 * 255),))
         rank_draw.text((25, 25), f"{rank_id}", "white", waves_font_34, "mm")
         bar_bg.alpha_composite(info_rank, (40, 35))
 
@@ -437,9 +415,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         uid_color = "white"
         if rankInfo.uid == self_uid:
             uid_color = RED
-        bar_draw.text(
-            (210, 40), f"{rankInfo.uid}", uid_color, waves_font_20, "lm"
-        )
+        bar_draw.text((210, 40), f"{rankInfo.uid}", uid_color, waves_font_20, "lm")
 
         # 绘制角色数量（根据等级显示）
         char_count = len(rankInfo.role_details)
@@ -464,15 +440,11 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
                 for _phantom in role.phantomData.equipPhantomList:
                     if _phantom and _phantom.phantomProp:
                         props = _phantom.get_props()
-                        _score, _ = calc_phantom_score(
-                            role.role.roleId, props, _phantom.cost, calc.calc_temp
-                        )
+                        _score, _ = calc_phantom_score(role.role.roleId, props, _phantom.cost, calc.calc_temp)
                         phantom_score += _score
                 role_scores.append((role, phantom_score))
 
-            sorted_roles = sorted(
-                role_scores, key=lambda x: x[1], reverse=True
-            )[:8]
+            sorted_roles = sorted(role_scores, key=lambda x: x[1], reverse=True)[:8]
 
             # 在条目底部绘制前5名角色的头像（放在UID右边）
             char_size = 40
@@ -494,9 +466,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
                 char_avatar_masked.paste(char_avatar, (0, 0), char_mask_resized)
 
                 # 粘贴头像
-                bar_bg.paste(
-                    char_avatar_masked, (char_x, char_start_y), char_avatar_masked
-                )
+                bar_bg.paste(char_avatar_masked, (char_x, char_start_y), char_avatar_masked)
 
                 # 绘制分数
                 score_text = f"{int(score)}"

@@ -1,10 +1,10 @@
-import asyncio
-import hashlib
-import shutil
+import os
 import ssl
 import time
-import os
-from typing import Any, List, Optional
+import shutil
+import asyncio
+import hashlib
+from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import httpx
@@ -12,20 +12,21 @@ import httpx
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.utils.download_resource.download_file import download
 from gsuid_core.utils.image.convert import convert_img
+from gsuid_core.utils.download_resource.download_file import download
 
 from ..utils.image import compress_to_webp
 from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
-from ..utils.resource.constant import SPECIAL_CHAR, SPECIAL_CHAR_ID
-from ..utils.resource.RESOURCE_PATH import CUSTOM_CARD_PATH, CUSTOM_MR_CARD_PATH, CUSTOM_MR_BG_PATH
 from ..wutheringwaves_config import WutheringWavesConfig
-    
+from ..utils.resource.constant import SPECIAL_CHAR, SPECIAL_CHAR_ID
+from ..utils.resource.RESOURCE_PATH import CUSTOM_CARD_PATH, CUSTOM_MR_BG_PATH, CUSTOM_MR_CARD_PATH
+
 CUSTOM_PATH_MAP = {
     "card": CUSTOM_CARD_PATH,
     "bg": CUSTOM_MR_BG_PATH,
     "stamina": CUSTOM_MR_CARD_PATH,
 }
+
 
 def get_hash_id(name):
     return hashlib.sha256(name.encode()).hexdigest()[:8]
@@ -62,12 +63,7 @@ def get_char_id_and_name(char: str) -> tuple[Optional[str], str, str]:
 async def get_image(ev: Event) -> Optional[List[str]]:
     res = []
     for content in ev.content:
-        if (
-            content.type == "img"
-            and content.data
-            and isinstance(content.data, str)
-            and content.data.startswith("http")
-        ):
+        if content.type == "img" and content.data and isinstance(content.data, str) and content.data.startswith("http"):
             res.append(content.data)
         elif (
             content.type == "image"
@@ -89,7 +85,8 @@ async def upload_custom_card(bot: Bot, ev: Event, char: str, target_type: str = 
     upload_images = await get_image(ev)
     if not upload_images:
         return await bot.send(
-            f"[鸣潮] 上传角色{target_type}图失败\n请同时发送图片及其命令\n支持上传的图片类型：面板图/体力图/背景图", at_sender
+            f"[鸣潮] 上传角色{target_type}图失败\n请同时发送图片及其命令\n支持上传的图片类型：面板图/体力图/背景图",
+            at_sender,
         )
 
     char_id, char, msg = get_char_id_and_name(char)
@@ -139,11 +136,7 @@ async def get_custom_card_list(bot: Bot, ev: Event, char: str, target_type: str 
         return await bot.send(f"[鸣潮] 角色【{char}】暂未上传过{target_type}图！\n", at_sender)
 
     # 获取角色文件夹图片数量, 只要图片
-    files = [
-        f
-        for f in temp_dir.iterdir()
-        if f.is_file() and f.suffix in [".jpg", ".png", ".jpeg", ".webp"]
-    ]
+    files = [f for f in temp_dir.iterdir() if f.is_file() and f.suffix in [".jpg", ".png", ".jpeg", ".webp"]]
 
     imgs = []
     for index, f in enumerate(files, start=1):
@@ -154,7 +147,7 @@ async def get_custom_card_list(bot: Bot, ev: Event, char: str, target_type: str 
 
     card_num = WutheringWavesConfig.get_config("CharCardNum").data
     card_num = max(5, min(card_num, 30))
-    
+
     for i in range(0, len(imgs), card_num * 2):
         send = imgs[i : i + card_num * 2]
         await bot.send(send)
@@ -178,16 +171,12 @@ async def delete_custom_card(bot: Bot, ev: Event, char: str, hash_id: str, targe
     }
 
     if hash_id not in files_map:
-        return await bot.send(
-            f"[鸣潮] 角色【{char}】未找到id为【{hash_id}】的{target_type}图！\n", at_sender
-        )
+        return await bot.send(f"[鸣潮] 角色【{char}】未找到id为【{hash_id}】的{target_type}图！\n", at_sender)
 
     # 删除文件
     try:
         files_map[hash_id].unlink()
-        return await bot.send(
-            f"[鸣潮] 删除角色【{char}】的id为【{hash_id}】的{target_type}图成功！\n", at_sender
-        )
+        return await bot.send(f"[鸣潮] 删除角色【{char}】的id为【{hash_id}】的{target_type}图成功！\n", at_sender)
     except Exception:
         return
 
@@ -223,9 +212,9 @@ async def delete_all_custom_card(bot: Bot, ev: Event, char: str, target_type: st
 
 async def compress_all_custom_card(bot: Bot, ev: Event):
     count = 0
-    use_cores = max(os.cpu_count() - 2 if os.cpu_count() else 0, 1) # 避免2c服务器卡死
+    use_cores = max(os.cpu_count() - 2 if os.cpu_count() else 0, 1)  # 避免2c服务器卡死
     await bot.send(f"[鸣潮] 开始压缩面板、体力、背景图, 使用 {use_cores} 核心")
-    
+
     task_list = []
     for PATH in CUSTOM_PATH_MAP.values():
         for char_id_path in PATH.iterdir():
@@ -236,7 +225,7 @@ async def compress_all_custom_card(bot: Bot, ev: Event):
                     continue
                 if img_path.suffix.lower() in [".jpg", ".png", ".jpeg"]:
                     task_list.append((img_path, 80, True))
-                
+
     with ThreadPoolExecutor(max_workers=use_cores) as executor:
         future_to_file = {executor.submit(compress_to_webp, *task): task for task in task_list}
 
@@ -246,7 +235,7 @@ async def compress_all_custom_card(bot: Bot, ev: Event):
                 success, _ = future.result()
                 if success:
                     count += 1
-                
+
             except Exception as exc:
                 logger.error(f"Error processing {file_info[0]}: {exc}")
 

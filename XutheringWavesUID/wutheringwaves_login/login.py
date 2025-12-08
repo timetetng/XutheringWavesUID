@@ -1,13 +1,13 @@
-import asyncio
-import hashlib
 import re
 import uuid
-from pathlib import Path
+import asyncio
+import hashlib
 from typing import Union
+from pathlib import Path
 
 import httpx
-from async_timeout import timeout
 from pydantic import BaseModel
+from async_timeout import timeout
 from starlette.responses import HTMLResponse
 
 from gsuid_core.bot import Bot
@@ -15,16 +15,16 @@ from gsuid_core.config import core_config
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.segment import MessageSegment
-from gsuid_core.utils.cookie_manager.qrlogin import get_qrcode_base64
 from gsuid_core.web_app import app
+from gsuid_core.utils.cookie_manager.qrlogin import get_qrcode_base64
 
-from ..utils.cache import TimedCache
-from ..utils.database.models import WavesBind, WavesUser
-from ..utils.resource.RESOURCE_PATH import waves_templates
 from ..utils.util import get_public_ip
+from ..utils.cache import TimedCache
 from ..utils.waves_api import waves_api
-from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..wutheringwaves_user import deal
+from ..utils.database.models import WavesBind, WavesUser
+from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
+from ..utils.resource.RESOURCE_PATH import waves_templates
 from ..wutheringwaves_user.login_succ import login_success_msg
 
 cache = TimedCache(timeout=600, maxsize=10)
@@ -172,9 +172,7 @@ async def page_login_other(bot: Bot, ev: Event, url):
         async with timeout(600):
             while True:
                 if times <= 0:
-                    return await bot.send(
-                        "登录服务请求失败! 请稍后再试\n", at_sender=at_sender
-                    )
+                    return await bot.send("登录服务请求失败! 请稍后再试\n", at_sender=at_sender)
 
                 result = await client.post(url + "/waves/get", json={"token": token})
                 if result.status_code != 200:
@@ -248,9 +246,7 @@ async def add_cookie(ev, token, did) -> Union[WavesUser, str, None]:
     if "成功" in ck_res:
         user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "cookie", token)
         if user:
-            data = await WavesBind.insert_waves_uid(
-                ev.user_id, ev.bot_id, user.uid, ev.group_id, lenth_limit=9
-            )
+            data = await WavesBind.insert_waves_uid(ev.user_id, ev.bot_id, user.uid, ev.group_id, lenth_limit=9)
             if data == 0 or data == -2:
                 await WavesBind.switch_uid_by_game(ev.user_id, ev.bot_id, user.uid)
         return user

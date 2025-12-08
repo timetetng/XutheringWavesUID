@@ -1,8 +1,8 @@
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.subscribe import gs_subscribe
-from gsuid_core.sv import SV
 
 sv_master = SV("联系主人", pm=0)
 master_name_ann = "联系主人"
