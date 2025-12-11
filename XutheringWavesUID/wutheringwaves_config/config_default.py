@@ -26,6 +26,11 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "公告推送总开关",
         True,
     ),
+    "WavesAnnBBSSub": GsListStrConfig(
+        "库洛BBS订阅博主",
+        "库洛BBS订阅博主",
+        [],
+    ),
     "WavesRankUseTokenGroup": GsListStrConfig(
         "有token才能进排行，群管理可设置",
         "有token才能进排行，群管理可设置",

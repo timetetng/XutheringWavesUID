@@ -57,7 +57,7 @@ MAP_CHAR_PATH = RESOURCE_PATH / "map" / "character"
 MAP_DETAIL_PATH = RESOURCE_PATH / "map" / "detail_json"
 MAP_CHALLENGE_PATH = RESOURCE_PATH / "map" / "detail_json" / "challenge"
 MAP_BUILD_PATH = BUILD_ROOT / "map" / "waves_build"
-MAP_BUILD_TEMP =  MAIN_PATH / "build" / "map" / "waves_build"
+MAP_BUILD_TEMP = MAIN_PATH / "build" / "map" / "waves_build"
 MAP_ALIAS_PATH = MAP_PATH / "alias"
 
 # 自定义背景图

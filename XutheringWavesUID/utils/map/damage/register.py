@@ -90,13 +90,13 @@ def reload_all_register():
     from ...damage.register_char import register_char
     from ...damage.register_echo import register_echo
     from ...damage.register_weapon import register_weapon
-    
+
     register_weapon()
     register_echo()
-    
+
     register_damage(reload=True)
     register_rank(reload=True)
-    
+
     register_char()
 
     # 初始化任务队列

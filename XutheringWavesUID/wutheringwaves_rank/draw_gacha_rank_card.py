@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List, Union, Tuple, Optional
+from typing import Dict, List, Tuple, Union, Optional
 from pathlib import Path
 
 from PIL import Image, ImageDraw

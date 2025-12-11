@@ -8,11 +8,11 @@ from gsuid_core.logger import logger
 from ..utils.resource.RESOURCE_PATH import (
     MAP_PATH,
     MAP_ALIAS_PATH,
+    CUSTOM_ID2NAME_PATH,
     CUSTOM_CHAR_ALIAS_PATH,
     CUSTOM_ECHO_ALIAS_PATH,
     CUSTOM_SONATA_ALIAS_PATH,
     CUSTOM_WEAPON_ALIAS_PATH,
-    CUSTOM_ID2NAME_PATH,
 )
 
 # 别名数据已移动到 resource/map/alias

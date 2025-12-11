@@ -1,5 +1,6 @@
 from typing import Any, Dict, Tuple
 
+
 def calc_phantom_entry(*args, **kwargs) -> Tuple[float, float]:
     from .waves_build.calculate import calc_phantom_entry as _func
 

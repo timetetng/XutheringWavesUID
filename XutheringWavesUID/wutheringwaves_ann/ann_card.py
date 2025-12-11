@@ -32,7 +32,9 @@ async def ann_list_card() -> bytes:
     # 分组并排序
     grouped = {}
     for item in ann_list:
-        t = item["eventType"]
+        t = item.get("eventType")
+        if not t:
+            continue
         grouped.setdefault(t, []).append(item)
 
     for data in grouped.values():

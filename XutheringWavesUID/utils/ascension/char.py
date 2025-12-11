@@ -130,6 +130,7 @@ def get_char_id(char_name, loose: bool = False) -> Optional[str]:
                 return _id
         return None
 
+
 def get_char_model(char_id: Union[str, int]) -> Optional[CharacterModel]:
     ensure_data_loaded()
     if str(char_id) not in char_id_data:

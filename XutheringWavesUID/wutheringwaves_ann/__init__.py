@@ -119,7 +119,8 @@ async def check_waves_ann_state():
         return
 
     logger.info(f"[鸣潮公告] 更新公告id: {new_ann_need_send}")
-    save_ids = sorted(ids, reverse=True)[:50] + new_ann_ids
+    # 这里先不删了，就是存
+    save_ids = sorted(ids, reverse=True) + new_ann_ids
     WutheringWavesConfig.set_config("WavesAnnNewIds", list(set(save_ids)))
 
     for ann_id in new_ann_need_send:

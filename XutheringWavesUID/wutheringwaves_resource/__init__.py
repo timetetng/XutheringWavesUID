@@ -1,14 +1,15 @@
+import os
+import shutil
+import hashlib
+from pathlib import Path
+
 from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-import shutil
-import os
-import hashlib
-from pathlib import Path
 
-from ..utils.resource.download_all_resource import download_all_resource, reload_all_modules
 from ..utils.resource.RESOURCE_PATH import BUILD_PATH, BUILD_TEMP, MAP_BUILD_PATH, MAP_BUILD_TEMP
+from ..utils.resource.download_all_resource import reload_all_modules, download_all_resource
 
 
 def count_files(directory: Path, pattern: str = "*") -> int:
@@ -17,10 +18,11 @@ def count_files(directory: Path, pattern: str = "*") -> int:
         return 0
     return sum(1 for file in directory.rglob(pattern) if file.is_file())
 
+
 def get_file_hash(file_path):
     """计算单个文件的哈希值"""
     hash_md5 = hashlib.md5()
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         hash_md5.update(f.read())
     return hash_md5.hexdigest()
 
@@ -41,7 +43,7 @@ def copy_if_different(src, dst, name):
 
     needs_update = False
 
-    for src_file in sorted(src_path.rglob('*')):
+    for src_file in sorted(src_path.rglob("*")):
         if src_file.is_file():
             rel_path = src_file.relative_to(src)
             dst_file = Path(dst) / rel_path
@@ -62,6 +64,7 @@ def copy_if_different(src, dst, name):
         logger.debug(f"[鸣潮] {name} 无需更新")
         return False
 
+
 sv_download_config = SV("ww资源下载", pm=1)
 
 
@@ -69,13 +72,14 @@ sv_download_config = SV("ww资源下载", pm=1)
 async def send_download_resource_msg(bot: Bot, ev: Event):
     build_updated = copy_if_different(BUILD_TEMP, BUILD_PATH, "安全工具资源")
     map_updated = copy_if_different(MAP_BUILD_TEMP, MAP_BUILD_PATH, "伤害计算资源")
-    
+
     await bot.send("[鸣潮] 正在开始下载~可能需要较久的时间！请勿重复执行！")
     await download_all_resource(force="强制" in ev.raw_text)
 
     if build_updated or map_updated:
         await bot.send("[鸣潮] 构建文件已更新，需要重启...")
         from gsuid_core.buildin_plugins.core_command.core_restart.restart import restart_genshinuid
+
         await restart_genshinuid(event=ev, is_send=True)
     else:
         reload_all_modules()
@@ -85,13 +89,14 @@ async def send_download_resource_msg(bot: Bot, ev: Event):
 async def startup():
     build_updated = copy_if_different(BUILD_TEMP, BUILD_PATH, "安全工具资源")
     map_updated = copy_if_different(MAP_BUILD_TEMP, MAP_BUILD_PATH, "伤害计算资源")
-    
-    reload_all_modules() # 已有资源，先加载，不然检查资源列表太久了
+
+    reload_all_modules()  # 已有资源，先加载，不然检查资源列表太久了
     logger.info("[鸣潮] 等待资源下载完成...")
     await download_all_resource()
-    
+
     if build_updated or map_updated:
         from gsuid_core.buildin_plugins.core_command.core_restart.restart import restart_genshinuid
+
         await restart_genshinuid(is_send=False)
     else:
         reload_all_modules()

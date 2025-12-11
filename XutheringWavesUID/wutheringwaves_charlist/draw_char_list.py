@@ -25,11 +25,11 @@ from ..utils.image import (
 from ..utils.api.model import WeaponData, RoleDetailData, AccountBaseInfo
 from ..utils.waves_api import waves_api
 from ..utils.error_reply import WAVES_CODE_102
+from ..utils.ascension.char import char_id_data, ensure_data_loaded
 from ..utils.expression_ctx import WavesCharRank, get_waves_char_rank
 from ..utils.char_info_utils import get_all_roleid_detail_info_int
 from ..wutheringwaves_config import WutheringWavesConfig
 from ..utils.ascension.weapon import get_breach
-from ..utils.ascension.char import char_id_data, ensure_data_loaded
 from ..utils.fonts.waves_fonts import (
     waves_font_16,
     waves_font_18,

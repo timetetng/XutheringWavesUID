@@ -119,8 +119,8 @@ async def download_all_resource(force: bool = False):
         "小维资源",
     )
 
-def reload_all_modules():
 
+def reload_all_modules():
     # 强制加载所有 map 数据
     from ..name_convert import ensure_data_loaded as ensure_name_convert_loaded
     from ..ascension.char import ensure_data_loaded as ensure_char_loaded
