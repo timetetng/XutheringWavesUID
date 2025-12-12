@@ -12,7 +12,7 @@ from gsuid_core.models import Event
 
 sv_waves_code = SV("鸣潮兑换码")
 
-invalid_code_list = ("MINGCHAO",)
+invalid_code_list = ("MINGCHAO","MINGCHAO666")
 
 url = "https://newsimg.5054399.com/comm/mlcxqcommon/static/wap/js/data_102.js?{}&callback=?&_={}"
 
@@ -23,7 +23,7 @@ async def get_sign_func(bot: Bot, ev: Event):
     if not code_list:
         return await bot.send("[获取兑换码失败] 请稍后再试")
 
-    msgs = []
+    msgs = [" ------ "]
     for code in code_list:
         is_fail = code.get("is_fail", "0")
         if is_fail == "1":
@@ -33,7 +33,7 @@ async def get_sign_func(bot: Bot, ev: Event):
             continue
         reward = code.get("reward", "")
         label = code.get("label", "")
-        msg = [f"兑换码: {order}", f"奖励: {reward}", label]
+        msg = [f"兑换码: {order} ------ ", f"奖励: {reward}", f"{label}",f" ------\n"]
         msgs.append("\n".join(msg))
 
     await bot.send(msgs)
