@@ -201,7 +201,7 @@ def merge_gacha_data(original_data: dict, latest_data: dict) -> dict:
         O_5s = [x for x in O_all if x.get("qualityLevel") == 5]
 
         if O_5s:
-            newest_local_time = _time_to_timestamp(O_5s[-1]["time"])
+            newest_local_time = _time_to_timestamp(O_5s[min(1, len(O_5s) - 1)]["time"])
             L_5s_filtered = [x for x in L_5s if _time_to_timestamp(x["time"]) < newest_local_time]
             logger.debug(
                 f"[GachaHandler] Pool {pool_id}: 本地最早五星时间 {O_5s[min(1, len(O_5s) - 1)]['time']}, "
