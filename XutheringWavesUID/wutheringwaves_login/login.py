@@ -98,8 +98,10 @@ async def send_login(bot: Bot, ev: Event, url):
             f"{game_title} 您的id为【{ev.user_id}】",
             "完成后将刷新全部面板，无需立即刷新",
             "同时登录库街区: https://kuro.lsgbin.com"
+            "请复制到浏览器打开"
             f" {url}" if WutheringWavesConfig.get_config("WavesLoginForward").data else url,
             "3分钟内有效",
+
         ]
 
         if WutheringWavesConfig.get_config("WavesLoginForward").data:
