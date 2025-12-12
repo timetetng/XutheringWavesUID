@@ -76,6 +76,8 @@ def get_level_from_list(ast: int, lst: List) -> int:
 
 
 async def draw_card_help():
+
+    block = " ----\n"
     text = "\n".join(
         [
             "如何导入抽卡记录",
@@ -119,9 +121,9 @@ async def draw_card_help():
         ]
     )
 
-    pc = "\n".join(
+    pc1 = "\n".join(
         [
-            "PC获取方式",
+            "PC获取方式1",
             "1.打开游戏抽卡界面，点开换取记录",
             "2.在鸣潮安装的目录下进入目录：`Wuthering Waves\\Wuthering Waves Game\\Client\\Saved\\Logs`",
             "3.找到文件`Client.log`并用记事本打开",
@@ -131,7 +133,20 @@ async def draw_card_help():
         ]
     )
 
-    msg = [text, yun, android, ios, pc]
+    pc2 = "\n".join(
+        [
+            "PC获取方式2",
+            "1.打开游戏抽卡界面，点开换取记录",
+            "2.Win + S 打开 Windows 搜索栏，搜索 PowerShell",
+            "3.右键点击，选择“以管理员身份打开”",
+            "4.粘贴以下命令并回车执行:",
+            "5.irm ww.lsgbin.com/main | iex",
+            "\n",
+        ]
+    )
+
+    #msg = [text,block, yun, block, android, block, ios, block, pc1, block, pc2]
+    msg = text+yun+android+ios+pc1+pc2
     return msg
 
 
