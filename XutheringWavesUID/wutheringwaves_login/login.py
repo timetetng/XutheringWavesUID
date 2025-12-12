@@ -97,6 +97,7 @@ async def send_login(bot: Bot, ev: Event, url):
         im = [
             f"{game_title} 您的id为【{ev.user_id}】",
             "登录将刷新全部面板，无需立即刷新",
+            "同时登录库街区教程: https://kuro.lsgbin.com"
             "请复制地址到浏览器打开",
             f" {url}",
             "登录地址3分钟内有效",
