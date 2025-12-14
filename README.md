@@ -35,7 +35,7 @@ git clone https://github.com/Loping151/XutheringWavesUID.git
 git clone https://github.com/Loping151/XutheringWavesUID.git
 ``` 
 
-总排行数据库重建：群号 653696746。如果仅需要本地伤害计算而不希望打扰，可发邮件 wkl@loping151.com 申请计算服务token，支持较少的请求量和用户量，但完全足以小范围使用，一般都欢迎入群。
+总排行申请、反馈（仅限主人）：群号 653696746。如实在不希望被打扰的，可发邮件 wkl@loping151.com 申请计算服务token，要求附带core信息截图和使用情况和规模说明，支持较少的请求量和用户量，但完全足以小范围使用，一般都欢迎入群。
 
 ## 丨安装提醒
 
@@ -48,9 +48,11 @@ git clone https://github.com/Loping151/XutheringWavesUID.git
 
 ## 丨其他
 
-+ 本项目仅供学习使用，请勿用于商业用途，禁止将**仅具有本插件功能**的服务进行收费。涉及本插件的一切收费行为与开发者无关，开发者不参与任何收费分成。
++ 本项目仅供学习使用，请勿用于商业用途，禁止将**仅具有本插件功能**的服务进行收费。涉及本插件的一切收费行为与开发者无关，开发者不参与任何收费分成。本插件亦没有付费版本或付费解锁的功能（包括签到、体力图背景更换等）。
 
-写给用户：但仍请考虑到即使仅具有本插件功能，部署也需要少量的 服务器或电费。部署并非零成本的，但绝非高成本的。
++ 写给一般用户：但仍请考虑到即使仅具有本插件功能，部署也需要少量的服务器或电费。群内已尽可能提供其他技术支持，包含十分低价的流量和免费的网络服务。部署并非零成本的，但绝非高成本的。
+
++ 使用总排行功能可进行鉴别，总排行免费对所有有能力搭建的主人开放，总排行应包含各种各样的Bot
 
 + [GPL-3.0 License](https://github.com/Loping151/XutheringWavesUID/blob/main/LICENSE)
 
@@ -58,10 +60,10 @@ git clone https://github.com/Loping151/XutheringWavesUID.git
 win_amd64: python3.10-3.13<br>
 win_arm64: not yet<br>
 linux_x86_64: python3.10-3.13<br>
-linux_aarch64: python3.11-3.13<br>
+linux_aarch64: python3.10-3.13<br>
 macos_intel: python3.10-3.13<br>
 macos_apple: python3.10-3.13<br>
-android: python3.10-3.12<br>
+android_termux: python3.12<br>
 
 **！本插件所含构建没有任何风险后门！本插件所含构建只读取gsuid_core目录下的文件，只请求非构建部分显示的域名！请随意进行流量检查和读写检查！**
 
