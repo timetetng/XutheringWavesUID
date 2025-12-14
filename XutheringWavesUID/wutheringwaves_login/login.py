@@ -159,10 +159,19 @@ async def page_login_other(bot: Bot, ev: Event, url):
                 json=auth,
                 headers={"Content-Type": "application/json"},
             )
-            token = r.json().get("token", "")
+            text = r.text
+            if not text or text.strip() == "":
+                logger.error(f"请求登录服务失败：服务器返回空响应 (状态码: {r.status_code})")
+                token = ""
+            else:
+                try:
+                    token = r.json().get("token", "")
+                except Exception as json_err:
+                    logger.error(f"请求登录服务失败：{json_err} | 响应内容: {text[:200]}")
+                    token = ""
         except Exception as e:
             token = ""
-            logger.error(e)
+            logger.error(f"请求登录服务失败：{e}")
         if not token:
             return await bot.send("登录服务请求失败! 请稍后再试\n", at_sender=at_sender)
 
@@ -180,7 +189,21 @@ async def page_login_other(bot: Bot, ev: Event, url):
                     times -= 1
                     await asyncio.sleep(5)
                     continue
-                data = result.json()
+
+                try:
+                    text = result.text
+                    if not text or text.strip() == "":
+                        logger.error("请求登录服务失败：/waves/get返回空响应")
+                        times -= 1
+                        await asyncio.sleep(5)
+                        continue
+                    data = result.json()
+                except Exception as json_err:
+                    logger.error(f"请求登录服务失败：{json_err} | 响应: {result.text[:200]}")
+                    times -= 1
+                    await asyncio.sleep(5)
+                    continue
+
                 if not data.get("ck"):
                     await asyncio.sleep(1)
                     continue
