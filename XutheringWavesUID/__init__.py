@@ -17,28 +17,28 @@ BACKUP_PATH = DATA_PATH / "backup"
 
 
 # 此次迁移是因为支持工坊抽卡记录，以防出现bug，先备份所有抽卡记录
-if PLAYERS_PATH.exists():
-    gacha_backup_path = BACKUP_PATH / "gacha_backup"
-    gacha_backup_path.mkdir(parents=True, exist_ok=True)
-    backup_count = 0
-    for player_dir in PLAYERS_PATH.iterdir():
-        if not player_dir.is_dir():
-            continue
-        src_file = player_dir / "gacha_logs.json"
-        if not src_file.exists():
-            continue
-        dst_dir = gacha_backup_path / player_dir.name
-        dst_dir.mkdir(parents=True, exist_ok=True)
-        dst_file = dst_dir / "gacha_logs.json"
-        if dst_file.exists():
-            continue
-        try:
-            shutil.copy2(src_file, dst_file)
-            backup_count += 1
-        except Exception as e:
-            logger.warning(f"[XutheringWavesUID] 备份抽卡记录失败 {player_dir.name}: {e}")
-    if backup_count > 0:
-        logger.info(f"[XutheringWavesUID] 抽卡记录备份完成，共 {backup_count} 个玩家")
+# if PLAYERS_PATH.exists():
+#     gacha_backup_path = BACKUP_PATH / "gacha_backup"
+#     gacha_backup_path.mkdir(parents=True, exist_ok=True)
+#     backup_count = 0
+#     for player_dir in PLAYERS_PATH.iterdir():
+#         if not player_dir.is_dir():
+#             continue
+#         src_file = player_dir / "gacha_logs.json"
+#         if not src_file.exists():
+#             continue
+#         dst_dir = gacha_backup_path / player_dir.name
+#         dst_dir.mkdir(parents=True, exist_ok=True)
+#         dst_file = dst_dir / "gacha_logs.json"
+#         if dst_file.exists():
+#             continue
+#         try:
+#             shutil.copy2(src_file, dst_file)
+#             backup_count += 1
+#         except Exception as e:
+#             logger.warning(f"[XutheringWavesUID] 备份抽卡记录失败 {player_dir.name}: {e}")
+#     if backup_count > 0:
+#         logger.info(f"[XutheringWavesUID] 抽卡记录备份完成，共 {backup_count} 个玩家")
 
 
 # 此次迁移是因为初次实现抽卡排行时，uid字段拿错导致的下划线连接多uid
