@@ -23,8 +23,8 @@ from ..utils.image import (
     get_random_waves_bg,
     get_random_waves_role_pile,
 )
-from ..utils.api.api import WAVES_GAME_ID
 from ..utils.api.model import DailyData, AccountBaseInfo
+from ..utils.constants import WAVES_GAME_ID
 from ..utils.waves_api import waves_api
 from ..utils.error_reply import ERROR_CODE, WAVES_CODE_102, WAVES_CODE_103
 from ..utils.name_convert import char_name_to_char_id

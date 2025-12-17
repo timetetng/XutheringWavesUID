@@ -20,7 +20,7 @@ from gsuid_core.utils.cookie_manager.qrlogin import get_qrcode_base64
 
 from ..utils.util import get_public_ip
 from ..utils.cache import TimedCache
-from ..utils.api.api import WAVES_GAME_ID
+from ..utils.constants import WAVES_GAME_ID
 from ..utils.waves_api import waves_api
 from ..wutheringwaves_user import deal
 from ..utils.database.models import WavesBind, WavesUser

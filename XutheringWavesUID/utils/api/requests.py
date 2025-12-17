@@ -23,7 +23,6 @@ from .api import (
     ROLE_DATA_URL,
     ROLE_LIST_URL,
     SERVER_ID_NET,
-    WAVES_GAME_ID,
     WEEK_LIST_URL,
     WIKI_HOME_URL,
     WIKI_TREE_URL,
@@ -66,6 +65,7 @@ from .request_util import (
     get_community_header,
 )
 from .captcha.errors import CaptchaError
+from ...utils.constants import WAVES_GAME_ID
 from ...utils.database.models import WavesUser
 from ...wutheringwaves_config import WutheringWavesConfig
 from ..resource.RESOURCE_PATH import CACHE_PATH

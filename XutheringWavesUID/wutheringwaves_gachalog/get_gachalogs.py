@@ -14,8 +14,8 @@ from gsuid_core.models import Event
 
 from .model import WWUIDGacha
 from ..version import XutheringWavesUID_version
-from ..utils.api.api import WAVES_GAME_ID
 from ..utils.api.model import GachaLog
+from ..utils.constants import WAVES_GAME_ID
 from ..utils.waves_api import waves_api
 from ..utils.database.models import WavesUser
 from ..wutheringwaves_config import PREFIX
