@@ -75,8 +75,8 @@ BATCH_ROLE_COST = f"{MAIN_URL}/aki/calculator/batchRoleCost"
 BATCH_WEAPON_COST = f"{MAIN_URL}/aki/calculator/batchWeaponCost"
 # 声骸培养成本
 BATCH_PHANTOM_COST = f"{MAIN_URL}/aki/calculator/batchPhantomCost"
-# 已拥有角色
-QUERY_OWNED_ROLE = f"{MAIN_URL}/aki/calculator/queryOwnedRole"
+# 已拥有角色详细信息（包含等级）
+OWNED_ROLE_INFO = f"{MAIN_URL}/aki/calculator/ownedRole/roleInfo"
 
 
 # 资源简报

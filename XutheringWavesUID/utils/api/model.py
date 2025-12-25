@@ -517,9 +517,36 @@ class OnlinePhantomList(RootModel[List[OnlinePhantom]]):
         return iter(self.root)
 
 
-class OwnedRoleList(RootModel[List[int]]):
-    def __iter__(self):
-        return iter(self.root)
+class OwnedRoleInfo(BaseModel):
+    """已拥有角色信息
+    {
+        "roleId": 1402,
+        "level": 90
+    }
+    """
+
+    roleId: int
+    level: int
+
+
+class OwnedRoleInfoResponse(BaseModel):
+    """已拥有角色信息响应"""
+
+    roleInfoList: List[OwnedRoleInfo]
+
+
+class EquipWeapon(BaseModel):
+    """装备的武器
+    {
+        "id": 21010056,
+        "breach": 6,
+        "level": 90
+    }
+    """
+
+    id: int
+    breach: int
+    level: int
 
 
 class RoleCultivateSkillLevel(BaseModel):
@@ -534,6 +561,11 @@ class RoleCultivateStatus(BaseModel): # 这里暂时没有谐度破坏
         "roleName": "珂莱塔",
         "roleLevel": 90,
         "roleBreakLevel": 6,
+        "equipWeapon": {
+            "id": 21010056,
+            "breach": 6,
+            "level": 90
+        },
         "skillLevelList": [{
                 "type": "常态攻击",
                 "level": 1
@@ -561,6 +593,7 @@ class RoleCultivateStatus(BaseModel): # 这里暂时没有谐度破坏
     roleName: str
     roleLevel: int
     roleBreakLevel: int  # 突破等级
+    equipWeapon: Optional[EquipWeapon] = None  # 装备的武器
     skillLevelList: List[RoleCultivateSkillLevel]
     skillBreakList: List[str]  # 突破技能
 
@@ -688,13 +721,29 @@ class PeriodNode(BaseModel):
     num: int
 
 
+class PeriodDetailNode(BaseModel):
+    type: str
+    num: int
+    sort: int
+
+
+class PeriodDetailItem(BaseModel):
+    type: int
+    total: int
+    inc: Optional[int] = None
+    detail: List[PeriodDetailNode] = Field(default_factory=list)
+    copyWriting: Optional[str] = None
+
+
 class PeriodDetail(BaseModel):
     """资源简报详情"""
 
-    totalCoin: int
-    totalStar: int
+    totalCoin: Optional[int] = 0
+    totalStar: Optional[int] = 0
     coinList: List[PeriodNode] = Field(default_factory=list)
     starList: List[PeriodNode] = Field(default_factory=list)
+    itemList: List[PeriodDetailItem] = Field(default_factory=list)
+    copyWriting: Optional[str] = None
 
 
 class PermanentRouge(BaseModel):

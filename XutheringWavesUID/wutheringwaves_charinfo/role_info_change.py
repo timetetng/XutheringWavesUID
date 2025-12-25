@@ -13,7 +13,7 @@ from ..utils.name_convert import (
     weapon_name_to_weapon_id,
 )
 from ..utils.api.model_other import EnemyDetailData
-from ..utils.char_info_utils import PATTERN, get_all_role_detail_info_list
+from ..utils.char_info_utils import PATTERN, get_all_role_detail_info_list, parse_skill_levels
 from ..utils.ascension.sonata import WavesSonataResult, get_sonata_detail
 from ..utils.ascension.weapon import WavesWeaponResult, get_weapon_detail
 from ..utils.resource.constant import SPECIAL_CHAR, SONATA_FIRST_ID
@@ -198,18 +198,20 @@ def parse_three_level(content: str) -> tuple[str, str] | None:
 
 
 def parse_skills(content: str) -> list[int] | None:
-    pattern = r"(技能等级|天赋|技能)\s*((?:\d{1,2}\s*){1,5})"
+    """
+    解析技能等级，支持多种格式：
+    - 空格分隔: "技能 10 9 10 8 10"
+    - 逗号分隔: "技能 10,9,10,8,10"
+    - 无分隔: "技能 1010101010" 或 "技能 99999"
+    """
+    pattern = r"(技能等级|天赋|技能)\s*((?:\d{1,2}\s*){1,5}|(?:\d+,\s*)*\d+)"
     match = re.search(pattern, content)
-    if match:
-        skills_str = match.group(2)
-        skills = [int(skill) for skill in skills_str.split() if 1 <= int(skill) <= 10]
-    else:
+    if not match:
         return None
 
-    while len(skills) < 5:
-        skills.append(10)
-
-    return skills[:5]
+    skills_str = match.group(2).strip()
+    # 使用公共的解析函数
+    return parse_skill_levels(skills_str)
 
 
 def parse_sonatas(content: str) -> list[Any] | None:

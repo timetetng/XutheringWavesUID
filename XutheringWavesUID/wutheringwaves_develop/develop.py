@@ -19,11 +19,10 @@ from ..utils.api.model import (
     OnlineRole,
     OnlineWeapon,
     CultivateCost,
-    OwnedRoleList,
     OnlineRoleList,
     RoleCostDetail,
-    RoleDetailData,
     OnlineWeaponList,
+    OwnedRoleInfoResponse,
     BatchRoleCostResponse,
     RoleCultivateStatusList,
 )
@@ -34,7 +33,6 @@ from ..utils.name_convert import (
     char_name_to_char_id,
     weapon_name_to_weapon_id,
 )
-from ..utils.char_info_utils import get_all_role_detail_info_list
 from ..utils.database.models import WavesBind
 from ..utils.fonts.waves_fonts import (
     waves_font_20,
@@ -42,7 +40,6 @@ from ..utils.fonts.waves_fonts import (
     waves_font_40,
 )
 from ..utils.resource.constant import SPECIAL_CHAR
-from ..utils.refresh_char_detail import refresh_char
 from ..utils.resource.download_file import get_material_img
 
 skillBreakList = ["2-1", "2-2", "2-3", "2-4", "2-5", "3-1", "3-2", "3-3", "3-4", "3-5"]
@@ -104,27 +101,37 @@ star_img_map = {
 }
 
 
-skill_name_list = [
-    "常态攻击",
-    "共鸣技能",
-    "共鸣回路",
-    "共鸣解放",
-    "变奏技能",
-    "其他技能",
-]
-
-skill_index_kuro = {
-    "常态攻击": 0,
-    "共鸣技能": 1,
-    "共鸣解放": 2,
-    "变奏技能": 3,
-    "共鸣回路": 4,
-    "延奏技能": 5,
-    "其他技能": 6,
-}
+SKILL_ORDER = ["常态攻击", "共鸣技能", "共鸣解放", "变奏技能", "共鸣回路"]
+skill_name_list = SKILL_ORDER + ["其他技能"]
 
 
-async def calc_develop_cost(ev: Event, develop_list: List[str], is_flush=False):
+async def calc_develop_cost(
+    ev: Event, develop_list: List[str], target_skill_levels: List[int] = None
+):
+    """
+    计算角色培养成本
+
+    Args:
+        ev: 事件对象
+        develop_list: 角色列表
+        target_skill_levels: 技能目标等级列表，顺序为[常态攻击, 共鸣技能, 共鸣解放, 变奏技能, 共鸣回路]
+                           默认 [10, 10, 10, 10, 10]
+    """
+    if target_skill_levels is None:
+        target_skill_levels = [10, 10, 10, 10, 10]
+
+    # 确保技能等级列表长度为5，如果不是则使用默认值
+    if not isinstance(target_skill_levels, list) or len(target_skill_levels) != 5:
+        target_skill_levels = [10, 10, 10, 10, 10]
+
+    # 确保所有元素都是整数，无效的替换为10
+    target_skill_levels = [
+        int(level) if isinstance(level, (int, str)) and str(level).isdigit() else 10
+        for level in target_skill_levels
+    ]
+    target_skill_levels_map = {
+        skill_type: target_skill_levels[idx] for idx, skill_type in enumerate(SKILL_ORDER)
+    }
     user_id = ev.user_id
     uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
     if not uid:
@@ -164,11 +171,11 @@ async def calc_develop_cost(ev: Event, develop_list: List[str], is_flush=False):
     online_list_weapon_model = OnlineWeaponList.model_validate(online_list_weapon.data)
     online_weapon_map = {str(i.weaponId): i for i in online_list_weapon_model}
     # 获取拥有的角色
-    owned_role = await waves_api.get_owned_role(uid, token)
+    owned_role = await waves_api.get_owned_role_info(uid, token)
     if not owned_role.success or isinstance(owned_role.data, str):
         return owned_role.throw_msg()
-    owned_char_ids_model = OwnedRoleList.model_validate(owned_role.data)
-    owned_char_ids = [str(i) for i in owned_char_ids_model]
+    owned_char_info = OwnedRoleInfoResponse.model_validate(owned_role.data)
+    owned_char_ids = [str(i.roleId) for i in owned_char_info.roleInfoList]
 
     owneds = []
     not_owneds = []
@@ -194,19 +201,17 @@ async def calc_develop_cost(ev: Event, develop_list: List[str], is_flush=False):
         develop_data = RoleCultivateStatusList.model_validate(develop_data.data)
         develop_data_map = {i.roleId: i for i in develop_data}
 
-    if is_flush:
-        waves_datas = await refresh_char(ev, uid, user_id, ck=token)
-        if isinstance(waves_datas, str):
-            return waves_datas
-    else:
-        waves_datas = await get_all_role_detail_info_list(uid)
-        if not waves_datas:
-            return "未找到养成角色"
-
     content_list = []
+    # 处理未拥有的角色
     for no_owned_char_id in not_owneds:
         template_role = copy.deepcopy(template_role_develop)
         template_role["roleId"] = no_owned_char_id
+
+        # 设置技能目标等级（按服务器技能顺序）
+        template_role["skillLevelUpList"] = [
+            {"startLevel": 1, "endLevel": target_skill_levels_map[skill_type]}
+            for skill_type in SKILL_ORDER
+        ]
 
         char_name = char_id_to_char_name(no_owned_char_id)
         if char_name:
@@ -216,28 +221,37 @@ async def calc_develop_cost(ev: Event, develop_list: List[str], is_flush=False):
 
         content_list.append(template_role)
 
-    for r in waves_datas:
-        if isinstance(r, RoleDetailData):
-            role_detail = r
-        else:
-            role_detail = RoleDetailData.model_validate(r)
-        char_id = role_detail.role.roleId
-        if char_id not in develop_data_map:
-            continue
-        develop_data = develop_data_map[char_id]
+    # 处理已拥有的角色（优化：直接使用 develop_data 中的 equipWeapon 信息）
+    for char_id, develop_data in develop_data_map.items():
         template_role = copy.deepcopy(template_role_develop)
         template_role["roleId"] = char_id
         template_role["roleStartLevel"] = develop_data.roleLevel
 
-        for skill in develop_data.skillLevelList:
-            skill_index = skill_index_kuro[skill.type]
-            if skill.type in ["其他技能", "延奏技能", "谐度破坏"]: # 其实没给，就其他技能
-                continue
+        current_level_map = {
+            skill.type: skill.level
+            for skill in develop_data.skillLevelList
+            if skill.type in SKILL_ORDER
+        }
+        template_role["skillLevelUpList"] = []
+        for skill_type in SKILL_ORDER:
+            start_level = current_level_map.get(skill_type, 1)
+            target_level = max(start_level, target_skill_levels_map[skill_type])
+            template_role["skillLevelUpList"].append(
+                {"startLevel": start_level, "endLevel": target_level}
+            )
 
-            template_role["skillLevelUpList"][skill_index]["startLevel"] = skill.level
+        # 优化：直接使用 equipWeapon 信息，无需查询本地数据库
+        if develop_data.equipWeapon:
+            template_role["weaponId"] = develop_data.equipWeapon.id
+            template_role["weaponStartLevel"] = develop_data.equipWeapon.level
+        else:
+            # 兜底：如果没有 equipWeapon 信息，尝试推测专武
+            char_name = char_id_to_char_name(str(char_id))
+            if char_name:
+                weapon_id = weapon_name_to_weapon_id(f"{char_name}专武")
+                if weapon_id:
+                    template_role["weaponId"] = weapon_id
 
-        template_role["weaponId"] = role_detail.weaponData.weapon.weaponId
-        template_role["weaponStartLevel"] = role_detail.weaponData.level
         template_role["advanceSkillList"] = list(set(skillBreakList).difference(set(develop_data.skillBreakList)))
         content_list.append(template_role)
 
@@ -425,7 +439,7 @@ async def calc_role_need_card(
             font=waves_font_32,
         )
         if skill_name != "其他技能":
-            skill_index = skill_index_kuro[skill_name]
+            skill_index = SKILL_ORDER.index(skill_name)
             skill_level = content["skillLevelUpList"][skill_index]
             skill_img_draw.text(
                 (80 + (i % 2) * 470, 100 + i // 2 * 120),
@@ -456,8 +470,12 @@ async def calc_role_need_card(
         all_cost_img = await draw_material_card(role_cost_detail.allCost, "所需材料总览")
         img_cards.append(all_cost_img)
 
+    if role_cost_detail.synthetic:
+        synthetic_img = await draw_material_card(role_cost_detail.synthetic, "背包可合成材料")
+        img_cards.append(synthetic_img)
+
     if role_cost_detail.missingCost:
-        missing_cost_img = await draw_material_card(role_cost_detail.missingCost, "仍需材料总览")
+        missing_cost_img = await draw_material_card(role_cost_detail.missingCost, "仍需材料总览 不考虑合成")
         img_cards.append(missing_cost_img)
 
     if role_cost_detail.missingRoleCost:

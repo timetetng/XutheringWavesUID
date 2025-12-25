@@ -9,7 +9,7 @@ from gsuid_core.models import Event
 
 from ..utils.hint import error_reply
 from ..utils.util import get_version
-from ..utils.api.model import RoleList, AccountBaseInfo
+from ..utils.api.model import RoleList, AccountBaseInfo, OwnedRoleInfoResponse
 from ..utils.waves_api import waves_api
 from .resource.constant import SPECIAL_CHAR_INT_ALL
 from ..utils.error_reply import WAVES_CODE_101, WAVES_CODE_102
@@ -18,6 +18,7 @@ from ..utils.queues.queues import push_item
 from ..utils.expression_ctx import WavesCharRank, get_waves_char_rank
 from ..wutheringwaves_config import WutheringWavesConfig
 from ..utils.resource.RESOURCE_PATH import PLAYER_PATH
+from ..utils.char_info_utils import get_all_roleid_detail_info_int
 
 
 def is_use_global_semaphore() -> bool:
@@ -229,6 +230,25 @@ async def refresh_char(
         logger.exception(f"{uid} 角色信息解析失败", e)
         msg = f"鸣潮特征码[{uid}]获取数据失败\n1.是否注册过库街区\n2.库街区能否查询当前鸣潮特征码数据"
         return msg
+
+    request_role_ids: List[int] = []
+    if refresh_type != "all":
+        if isinstance(refresh_type, list):
+            request_role_ids = [int(r) for r in refresh_type if str(r).isdigit()]
+        elif str(refresh_type).isdigit():
+            request_role_ids = [int(refresh_type)]
+
+    if request_role_ids:
+        local_roles = await get_all_roleid_detail_info_int(uid)
+        has_local_role = bool(local_roles and any(rid in local_roles for rid in request_role_ids))
+        if not has_local_role:
+            owned_role_info = await waves_api.get_owned_role_info(uid, ck)
+            if not owned_role_info.success or isinstance(owned_role_info.data, str):
+                return owned_role_info.throw_msg()
+            owned_role_info = OwnedRoleInfoResponse.model_validate(owned_role_info.data)
+            owned_role_ids = {r.roleId for r in owned_role_info.roleInfoList}
+            if not any(rid in owned_role_ids for rid in request_role_ids):
+                return error_reply(code=-110, msg="未拥有该角色，无法刷新面板")
 
     semaphore = await semaphore_manager.get_semaphore()
 

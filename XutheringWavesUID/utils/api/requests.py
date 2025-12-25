@@ -6,10 +6,24 @@ import inspect
 from typing import Any, Dict, List, Union, Literal, Mapping, Optional
 
 import aiohttp
+from gsuid_core.logger import logger
 from aiohttp import ClientTimeout, ContentTypeError
 
-from gsuid_core.logger import logger
-
+from .captcha import get_solver
+from ..util import timed_async_cache
+from .captcha.base import CaptchaResult
+from ..error_reply import WAVES_CODE_999
+from .captcha.errors import CaptchaError
+from ...utils.constants import WAVES_GAME_ID
+from ...utils.database.models import WavesUser
+from ..resource.RESOURCE_PATH import CACHE_PATH
+from ...wutheringwaves_config import WutheringWavesConfig
+from .request_util import (
+    KURO_VERSION,
+    KuroApiResp,
+    get_base_header,
+    get_community_header,
+)
 from .api import (
     BBS_LIST,
     LOGIN_URL,
@@ -18,6 +32,7 @@ from .api import (
     ANN_LIST_URL,
     BASE_DATA_URL,
     GACHA_LOG_URL,
+    GAME_DATA_URL,
     LOGIN_LOG_URL,
     REQUEST_TOKEN,
     ROLE_DATA_URL,
@@ -27,9 +42,9 @@ from .api import (
     WIKI_HOME_URL,
     WIKI_TREE_URL,
     MONTH_LIST_URL,
-    GAME_DATA_URL,
     ANN_CONTENT_URL,
     BATCH_ROLE_COST,
+    OWNED_ROLE_INFO,
     PERIOD_LIST_URL,
     ROLE_DETAIL_URL,
     SLASH_INDEX_URL,
@@ -37,7 +52,6 @@ from .api import (
     WIKI_DETAIL_URL,
     EXPLORE_DATA_URL,
     ONLINE_LIST_ROLE,
-    QUERY_OWNED_ROLE,
     SLASH_DETAIL_URL,
     TOWER_DETAIL_URL,
     VERSION_LIST_URL,
@@ -54,21 +68,6 @@ from .api import (
     get_local_proxy_url,
     get_need_proxy_func,
 )
-from ..util import timed_async_cache
-from .captcha import get_solver
-from ..error_reply import WAVES_CODE_999
-from .captcha.base import CaptchaResult
-from .request_util import (
-    KURO_VERSION,
-    KuroApiResp,
-    get_base_header,
-    get_community_header,
-)
-from .captcha.errors import CaptchaError
-from ...utils.constants import WAVES_GAME_ID
-from ...utils.database.models import WavesUser
-from ...wutheringwaves_config import WutheringWavesConfig
-from ..resource.RESOURCE_PATH import CACHE_PATH
 
 
 def generate_random_jwt_token() -> str:
@@ -665,13 +664,14 @@ class WavesApi:
         data = {}
         return await self._waves_request(ONLINE_LIST_PHANTOM, "POST", header, data=data)
 
-    async def get_owned_role(
+    async def get_owned_role_info(
         self,
         roleId: str,
         token: str,
+        userId: Optional[str] = None,
         serverId: Optional[str] = None,
     ):
-        """已拥有角色"""
+        """已拥有角色信息（包含等级）"""
         header = await get_base_header()
         used_headers = await self.get_used_headers(cookie=token, uid=roleId, needToken=True)
         header.update(used_headers)
@@ -679,7 +679,9 @@ class WavesApi:
             "serverId": self.get_server_id(roleId, serverId),
             "roleId": roleId,
         }
-        return await self._waves_request(QUERY_OWNED_ROLE, "POST", header, data=data)
+        if userId:
+            data["userId"] = userId
+        return await self._waves_request(OWNED_ROLE_INFO, "POST", header, data=data)
 
     async def get_develop_role_cultivate_status(
         self,
