@@ -288,7 +288,7 @@ async def _draw_period_img(ev: Event, valid: Dict):
 
     # 遮罩
     mask_img = Image.open(TEXT_PATH / "home-mask-black.png").convert("RGBA")
-    mask_img = mask_img.resize((based_w, total_img_height))
+    mask_img = mask_img.resize((based_w, total_img_height - 125))
     img.alpha_composite(mask_img, (0, 70))
 
     # 绘制角色信息 750 × 206
