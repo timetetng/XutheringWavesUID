@@ -64,6 +64,7 @@ MAP_ALIAS_PATH = MAP_PATH / "alias"
 CUSTOM_CARD_PATH = MAIN_PATH / "custom_role_pile"
 CUSTOM_MR_CARD_PATH = MAIN_PATH / "custom_mr_role_pile"
 CUSTOM_MR_BG_PATH = MAIN_PATH / "custom_mr_bg"
+CUSTOM_ORB_PATH = MAIN_PATH / "custom_orb"
 
 # 其他的素材
 OTHER_PATH = MAIN_PATH / "other"
@@ -118,6 +119,7 @@ def init_dir():
         MAP_ALIAS_PATH,
         CUSTOM_MR_CARD_PATH,
         CUSTOM_MR_BG_PATH,
+        CUSTOM_ORB_PATH,
         ALIAS_PATH,
     ]:
         i.mkdir(parents=True, exist_ok=True)

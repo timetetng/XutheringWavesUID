@@ -182,6 +182,23 @@ async def get_role_pile(resource_id: Union[int, str], custom: bool = False) -> t
     return False, Image.open(path).convert("RGBA")
 
 
+async def get_role_pile_with_path(
+    resource_id: Union[int, str],
+    custom: bool = False,
+) -> tuple[bool, Image.Image, Optional[Path]]:
+    if custom:
+        custom_dir = f"{CUSTOM_CARD_PATH}/{resource_id}"
+        if os.path.isdir(custom_dir) and len(os.listdir(custom_dir)) > 0:
+            name = _random_image_from_dir(custom_dir)
+            if name:
+                path = Path(custom_dir) / name
+                return True, Image.open(path).convert("RGBA"), path
+
+    name = f"role_pile_{resource_id}.png"
+    path = ROLE_PILE_PATH / name
+    return False, Image.open(path).convert("RGBA"), path
+
+
 async def get_role_pile_default(resource_id: Union[int, str], custom: bool = False) -> Image.Image:
     if custom:
         custom_dir = f"{CUSTOM_MR_CARD_PATH}/{resource_id}"

@@ -1,40 +1,38 @@
 import re
 import copy
-from typing import Dict, Optional
+import hashlib
 from pathlib import Path
+from typing import Dict, Optional
 
 import httpx
-from PIL import Image, ImageDraw, ImageEnhance
-
-from gsuid_core.logger import logger
 from gsuid_core.models import Event
+from gsuid_core.logger import logger
+from PIL import Image, ImageDraw, ImageEnhance
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import get_qq_avatar, crop_center_img
 
 from ..utils import hint
 from ..utils.calc import WuWaCalc
-from ..utils.image import (
-    GOLD,
-    GREY,
-    SPECIAL_GOLD,
-    WAVES_MOONLIT,
-    WAVES_FREEZING,
-    WAVES_SHUXING_MAP,
-    WEAPON_RESONLEVEL_COLOR,
-    add_footer,
-    change_color,
-    get_waves_bg,
-    get_attribute,
-    get_role_pile,
-    get_small_logo,
-    get_weapon_type,
-    get_event_avatar,
-    get_square_avatar,
-    get_square_weapon,
-    get_attribute_prop,
-    get_attribute_effect,
-    draw_text_with_shadow,
-    get_custom_gaussian_blur,
+from ..utils.waves_api import waves_api
+from ..wutheringwaves_config import PREFIX
+from ..utils.error_reply import WAVES_CODE_102
+from .role_info_change import change_role_detail
+from ..utils.ascension.char import get_char_model
+from ..utils.api.model_other import EnemyDetailData
+from ..utils.damage.utils import comma_separated_number
+from ..utils.ascension.template import get_template_data
+from ..utils.char_info_utils import get_all_roleid_detail_info
+from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
+from ..utils.api.wwapi import ONE_RANK_URL, OneRankRequest, OneRankResponse
+from ..utils.damage.abstract import DamageRankRegister, DamageDetailRegister
+from ..wutheringwaves_config.wutheringwaves_config import (
+    ShowConfig,
+    WutheringWavesConfig,
+)
+from ..utils.resource.download_file import (
+    get_chain_img,
+    get_skill_img,
+    get_phantom_img,
 )
 from ..utils.api.model import (
     WeaponData,
@@ -42,7 +40,19 @@ from ..utils.api.model import (
     RoleDetailData,
     AccountBaseInfo,
 )
-from ..utils.api.wwapi import ONE_RANK_URL, OneRankRequest, OneRankResponse
+from ..utils.ascension.weapon import (
+    WavesWeaponResult,
+    get_breach,
+    get_weapon_model,
+    get_weapon_detail,
+)
+from ..utils.resource.constant import (
+    SPECIAL_CHAR,
+    ATTRIBUTE_ID_MAP,
+    DEAFAULT_WEAPON_ID,
+    WEAPON_TYPE_ID_MAP,
+    get_short_name,
+)
 from ..utils.calculate import (
     get_calc_map,
     get_max_score,
@@ -51,23 +61,8 @@ from ..utils.calculate import (
     calc_phantom_score,
     get_total_score_bg,
 )
-from ..utils.waves_api import waves_api
-from .role_info_change import change_role_detail
-from ..utils.error_reply import WAVES_CODE_102
-from ..utils.damage.utils import comma_separated_number
-from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
-from ..utils.ascension.char import get_char_model
-from ..utils.api.model_other import EnemyDetailData
-from ..utils.char_info_utils import get_all_roleid_detail_info
-from ..utils.damage.abstract import DamageRankRegister, DamageDetailRegister
-from ..wutheringwaves_config import PREFIX
-from ..utils.ascension.weapon import (
-    WavesWeaponResult,
-    get_breach,
-    get_weapon_model,
-    get_weapon_detail,
-)
 from ..utils.fonts.waves_fonts import (
+    waves_font_12,
     waves_font_16,
     waves_font_18,
     waves_font_20,
@@ -81,22 +76,28 @@ from ..utils.fonts.waves_fonts import (
     waves_font_42,
     waves_font_50,
 )
-from ..utils.resource.constant import (
-    SPECIAL_CHAR,
-    ATTRIBUTE_ID_MAP,
-    DEAFAULT_WEAPON_ID,
-    WEAPON_TYPE_ID_MAP,
-    get_short_name,
-)
-from ..utils.ascension.template import get_template_data
-from ..utils.resource.download_file import (
-    get_chain_img,
-    get_skill_img,
-    get_phantom_img,
-)
-from ..wutheringwaves_config.wutheringwaves_config import (
-    ShowConfig,
-    WutheringWavesConfig,
+from ..utils.image import (
+    GOLD,
+    GREY,
+    SPECIAL_GOLD,
+    WAVES_MOONLIT,
+    WAVES_FREEZING,
+    WAVES_SHUXING_MAP,
+    WEAPON_RESONLEVEL_COLOR,
+    add_footer,
+    change_color,
+    get_waves_bg,
+    get_attribute,
+    get_small_logo,
+    get_weapon_type,
+    get_event_avatar,
+    get_square_avatar,
+    get_square_weapon,
+    get_attribute_prop,
+    get_attribute_effect,
+    draw_text_with_shadow,
+    get_role_pile_with_path,
+    get_custom_gaussian_blur,
 )
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -480,7 +481,7 @@ async def draw_fixed_img(img, avatar, account_info, role_detail):
         img.paste(title_bar, (200, 15), title_bar)
 
     # 左侧pile部分
-    is_custom, role_pile = await get_role_pile(role_detail.role.roleId, True)
+    is_custom, role_pile, role_pile_path = await get_role_pile_with_path(role_detail.role.roleId, True)
     char_mask = Image.open(TEXT_PATH / "char_mask.png")
     char_fg = Image.open(TEXT_PATH / "char_fg.png")
 
@@ -515,6 +516,11 @@ async def draw_fixed_img(img, avatar, account_info, role_detail):
     )
     img.paste(role_pile_image, (25, 170), char_mask)
     img.paste(char_fg, (25, 170), char_fg)
+
+    if is_custom and role_pile_path is not None:
+        hash_id = hashlib.sha256(role_pile_path.name.encode()).hexdigest()[:8]
+        draw = ImageDraw.Draw(img)
+        draw_text_with_shadow(draw, hash_id, 520, 270, waves_font_12, offset=(1, 1), shadow_color="gray", anchor="rm")
 
 
 def resize_and_center_image(image, output_size=(560, 1000), background_color=(255, 255, 255, 0), is_custom=False):

@@ -3,7 +3,6 @@ import ssl
 import time
 import shutil
 import asyncio
-import hashlib
 from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -16,48 +15,18 @@ from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.download_resource.download_file import download
 
 from ..utils.image import compress_to_webp
-from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..wutheringwaves_config import WutheringWavesConfig
-from ..utils.resource.constant import SPECIAL_CHAR, SPECIAL_CHAR_ID
-from ..utils.resource.RESOURCE_PATH import CUSTOM_CARD_PATH, CUSTOM_MR_BG_PATH, CUSTOM_MR_CARD_PATH
-
-CUSTOM_PATH_MAP = {
-    "card": CUSTOM_CARD_PATH,
-    "bg": CUSTOM_MR_BG_PATH,
-    "stamina": CUSTOM_MR_CARD_PATH,
-}
-
-
-def get_hash_id(name):
-    return hashlib.sha256(name.encode()).hexdigest()[:8]
-
-
-def get_char_id_and_name(char: str) -> tuple[Optional[str], str, str]:
-    char_id = None
-    msg = f"[鸣潮] 角色名【{char}】无法找到, 可能暂未适配, 请先检查输入是否正确！"
-    sex = ""
-    if "男" in char:
-        char = char.replace("男", "")
-        sex = "男"
-    elif "女" in char:
-        char = char.replace("女", "")
-        sex = "女"
-
-    char = alias_to_char_name(char)
-    if not char:
-        return char_id, char, msg
-
-    char_id = char_name_to_char_id(char)
-    if not char_id:
-        return char_id, char, msg
-
-    if char_id in SPECIAL_CHAR:
-        if not sex:
-            msg1 = f"[鸣潮] 主角【{char}】需要指定性别！"
-            return char_id, char, msg1
-        char_id = SPECIAL_CHAR_ID[f"{char}·{sex}"]
-
-    return char_id, char, ""
+from ..utils.resource.RESOURCE_PATH import CUSTOM_CARD_PATH
+from .card_utils import (
+    CUSTOM_PATH_MAP,
+    delete_orb_cache,
+    find_duplicates_for_new_images,
+    get_char_id_and_name,
+    get_hash_id,
+    get_orb_dir_for_char,
+    ORB_BLOCK_THRESHOLD,
+    update_orb_cache,
+)
 
 
 async def get_image(ev: Event) -> Optional[List[str]]:
@@ -79,7 +48,13 @@ async def get_image(ev: Event) -> Optional[List[str]]:
     return res
 
 
-async def upload_custom_card(bot: Bot, ev: Event, char: str, target_type: str = "card"):
+async def upload_custom_card(
+    bot: Bot,
+    ev: Event,
+    char: str,
+    target_type: str = "card",
+    is_force: bool = False,
+):
     at_sender = True if ev.group_id else False
 
     upload_images = await get_image(ev)
@@ -98,6 +73,7 @@ async def upload_custom_card(bot: Bot, ev: Event, char: str, target_type: str = 
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     success = True
+    new_images = []
     for upload_image in upload_images:
         name = f"{char}_{int(time.time() * 1000)}.jpg"
         temp_path = temp_dir / name
@@ -119,10 +95,41 @@ async def upload_custom_card(bot: Bot, ev: Event, char: str, target_type: str = 
                 # 成功
                 success = False
                 break
+            new_images.append(temp_path)
 
     if success:
         msg = f"[鸣潮]【{char}】上传{target_type}图成功！"
-        return await bot.send((" " if at_sender else "") + msg, at_sender)
+        if new_images:
+            dup_map = find_duplicates_for_new_images(temp_dir, new_images)
+            block_msgs = []
+            blocked_paths = set()
+            for index, new_path in enumerate(new_images, start=1):
+                dup_list = dup_map.get(new_path)
+                if not dup_list:
+                    continue
+                dup_list = sorted(dup_list, key=lambda x: -x[1])
+                top_path, top_sim = dup_list[0]
+                top_id = get_hash_id(top_path.name)
+                if top_sim >= ORB_BLOCK_THRESHOLD:
+                    block_msgs.append(f"第{index}张和已有id {top_id} 重复")
+                    blocked_paths.add(new_path)
+
+            if block_msgs and not is_force:
+                for img_path in blocked_paths:
+                    try:
+                        img_path.unlink()
+                    except Exception:
+                        pass
+                    delete_orb_cache(img_path)
+                block_text = "；".join(block_msgs)
+                msg = f"{msg} 疑似重复: {block_text}，请使用强制上传继续上传"
+
+            for img_path in new_images:
+                if img_path not in blocked_paths:
+                    update_orb_cache(img_path)
+
+        await bot.send((" " if at_sender else "") + msg, at_sender)
+        return
     else:
         msg = f"[鸣潮]【{char}】上传{target_type}图失败！"
         return await bot.send((" " if at_sender else "") + msg, at_sender)
@@ -143,7 +150,7 @@ async def get_custom_card_list(bot: Bot, ev: Event, char: str, target_type: str 
     files = [f for f in temp_dir.iterdir() if f.is_file() and f.suffix in [".jpg", ".png", ".jpeg", ".webp"]]
 
     imgs = []
-    for index, f in enumerate(files, start=1):
+    for _, f in enumerate(files, start=1):
         img = await convert_img(f)
         hash_id = get_hash_id(f.name)
         imgs.append(f"{char}{target_type}图id : {hash_id}")
@@ -175,17 +182,38 @@ async def delete_custom_card(bot: Bot, ev: Event, char: str, hash_id: str, targe
         if f.is_file() and f.suffix in [".jpg", ".png", ".jpeg", ".webp"]
     }
 
-    if hash_id not in files_map:
-        msg = f"[鸣潮] 角色【{char}】未找到id为【{hash_id}】的{target_type}图！"
+    # 支持逗号分隔的多个ID
+    hash_ids = [id.strip() for id in hash_id.replace("，", ",").split(",") if id.strip()]
+
+    if not hash_ids:
+        msg = f"[鸣潮] 未提供有效的{target_type}图ID！"
         return await bot.send((" " if at_sender else "") + msg, at_sender)
 
-    # 删除文件
-    try:
-        files_map[hash_id].unlink()
-        msg = f"[鸣潮] 删除角色【{char}】的id为【{hash_id}】的{target_type}图成功！"
-        return await bot.send((" " if at_sender else "") + msg, at_sender)
-    except Exception:
-        return
+    not_found_ids = []
+    deleted_ids = []
+
+    for single_hash_id in hash_ids:
+        if single_hash_id not in files_map:
+            not_found_ids.append(single_hash_id)
+        else:
+            try:
+                target_file = files_map[single_hash_id]
+                target_file.unlink()
+                delete_orb_cache(target_file)
+                deleted_ids.append(single_hash_id)
+            except Exception as e:
+                logger.exception(f"删除文件失败: {target_file} - {e}")
+                not_found_ids.append(single_hash_id)
+
+    # 构建返回消息
+    msg_parts = []
+    if deleted_ids:
+        msg_parts.append(f"成功删除id: {', '.join(deleted_ids)}")
+    if not_found_ids:
+        msg_parts.append(f"未找到id: {', '.join(not_found_ids)}")
+
+    msg = f"[鸣潮] 角色【{char}】{target_type}图 " + "；".join(msg_parts)
+    return await bot.send((" " if at_sender else "") + msg, at_sender)
 
 
 async def delete_all_custom_card(bot: Bot, ev: Event, char: str, target_type: str = "card"):
@@ -213,6 +241,9 @@ async def delete_all_custom_card(bot: Bot, ev: Event, char: str, target_type: st
     try:
         if temp_dir.exists() and temp_dir.is_dir():
             shutil.rmtree(temp_dir)
+        orb_dir = get_orb_dir_for_char(target_type, char_id)
+        if orb_dir.exists() and orb_dir.is_dir():
+            shutil.rmtree(orb_dir)
     except Exception:
         pass
 
@@ -245,6 +276,8 @@ async def compress_all_custom_card(bot: Bot, ev: Event):
                 success, _ = future.result()
                 if success:
                     count += 1
+                    delete_orb_cache(file_info[0])
+                    update_orb_cache(file_info[0].with_suffix(".webp"))
 
             except Exception as exc:
                 logger.error(f"Error processing {file_info[0]}: {exc}")
