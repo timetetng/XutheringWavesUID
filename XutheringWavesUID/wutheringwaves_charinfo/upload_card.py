@@ -110,9 +110,14 @@ async def upload_custom_card(
                 block_text = "；".join(block_msgs)
                 msg = f"{msg} 疑似重复: {block_text}，请使用强制上传继续上传"
 
+            success_ids = []
             for img_path in new_images:
                 if img_path not in blocked_paths:
                     update_orb_cache(img_path)
+                    success_ids.append(get_hash_id(img_path.name))
+
+            if success_ids:
+                msg = f"{msg} 上传成功id: {', '.join(success_ids)}"
 
         await bot.send((" " if at_sender else "") + msg, at_sender)
         return
