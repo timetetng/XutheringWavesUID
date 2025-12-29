@@ -208,7 +208,7 @@ async def page_login_other(bot: Bot, ev: Event, url):
                     await asyncio.sleep(1)
                     continue
 
-                waves_user = await add_cookie(ev, data["ck"], data["did"], is_login=True)
+                waves_user = await add_cookie(ev, data["ck"], data["did"])
                 cache.delete(user_token)
                 if waves_user and isinstance(waves_user, WavesUser):
                     return await login_success_msg(bot, ev, waves_user)
@@ -255,7 +255,7 @@ async def code_login(bot: Bot, ev: Event, text: str, isPage=False):
         return await bot.send(message=result.throw_msg(), at_sender=at_sender)
 
     token = result.data.get("token", "")
-    waves_user = await add_cookie(ev, token, did, is_login=True)
+    waves_user = await add_cookie(ev, token, did)
     if waves_user and isinstance(waves_user, WavesUser):
         return await login_success_msg(bot, ev, waves_user)
     else:
@@ -266,7 +266,7 @@ async def code_login(bot: Bot, ev: Event, text: str, isPage=False):
 
 
 async def add_cookie(ev, token, did) -> Union[WavesUser, str, None]:
-    ck_res = await deal.add_cookie(ev, token, did)
+    ck_res = await deal.add_cookie(ev, token, did, is_login=True)
     if "成功" in ck_res:
         user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "cookie", token, game_id=WAVES_GAME_ID)
         if user:
