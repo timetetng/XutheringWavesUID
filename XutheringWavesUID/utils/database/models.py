@@ -291,26 +291,37 @@ class WavesUser(User, table=True):
 
     @classmethod
     @with_session
-    async def update_token_by_did(
+    async def update_token_by_login(
         cls,
         session: AsyncSession,
-        did: str,
+        new_did: str,
         new_token: str,
         user_id: str,
         bot_id: str,
     ):
-        """更新所有相同did且is_login为True的记录的token"""
+        """通过bind查找所有绑定的WavesUser，如果is_login为True则更新cookie和did"""
+        # 1. 查找WavesBind，获取所有绑定的uid
+        bind_data = await WavesBind.select_data(user_id, bot_id)
+        if not bind_data or not bind_data.uid:
+            return 0
+
+        # 2. 解析uid列表
+        uid_list = [u for u in bind_data.uid.split("_") if u]
+        if not uid_list:
+            return 0
+
+        # 3. 更新所有is_login为True的记录
         sql = (
             update(cls)
             .where(
                 and_(
-                    col(cls.did) == did,
-                    col(cls.is_login) == True,
                     col(cls.user_id) == user_id,
                     col(cls.bot_id) == bot_id,
+                    col(cls.uid).in_(uid_list),
+                    col(cls.is_login) == True,
                 )
             )
-            .values(cookie=new_token)
+            .values(cookie=new_token, did=new_did)
         )
         result = await session.execute(sql)
         return result.rowcount

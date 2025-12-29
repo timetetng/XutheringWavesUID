@@ -87,7 +87,7 @@ async def add_cookie(ev: Event, ck: str, did: str, is_login: bool = False) -> st
 
             # 如果是登录模式，更新所有相同did且is_login为True的记录的token
             if is_login and did:
-                await WavesUser.update_token_by_did(did, ck, ev.user_id, ev.bot_id)
+                await WavesUser.update_token_by_login(did, ck, ev.user_id, ev.bot_id)
 
             res = await WavesBind.insert_waves_uid(ev.user_id, ev.bot_id, data.roleId, ev.group_id, lenth_limit=9)
             if res == 0 or res == -2:
