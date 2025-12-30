@@ -372,7 +372,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
             return await bot.send(im, at_sender)
 
 
-@waves_new_char_detail.on_regex(rf"^(?P<waves_id>\d+)?(?P<char>{PATTERN})权重$", block=True)
+@waves_new_char_detail.on_regex(rf"^(?P<waves_id>\d+)?(?P<char>{PATTERN})(权重|qz)$", block=True)
 async def send_char_detail_msg2_weight(bot: Bot, ev: Event):
     waves_id = ev.regex_dict.get("waves_id")
     char = ev.regex_dict.get("char")
