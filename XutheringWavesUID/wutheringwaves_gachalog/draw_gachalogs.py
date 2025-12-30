@@ -89,6 +89,7 @@ async def draw_card_help():
             f"使用命令【{PREFIX}导入抽卡链接 + 你复制的内容】即可开始进行抽卡分析",
             "",
             "抽卡链接具有有效期，请在有效期内尽快导入",
+            "\n",
         ]
     )
     gongfang = "\n".join(
@@ -96,7 +97,7 @@ async def draw_card_help():
                     "工坊获取方式",
                 "要求先使用任意方式通过链接导入记录",
                 f"{PREFIX}导入抽卡链接 UID（9位数字）",
-                "",
+                "\n",
         ]
     )
     yun = "\n".join(
