@@ -8,7 +8,7 @@ from gsuid_core.aps import scheduler
 from gsuid_core.logger import logger
 
 from ..wutheringwaves_config import WutheringWavesConfig
-from ..utils.download_utils import copy_if_different
+from ..utils.download_utils import copy_if_different, check_file_hash
 from ..utils.resource.download_all_resource import (
     reload_all_modules,
     download_all_resource,
@@ -35,6 +35,9 @@ async def send_download_resource_msg(bot: Bot, ev: Event):
     await bot.send("[鸣潮] 正在开始下载~可能需要较久的时间！请勿重复执行！")
     await download_all_resource(force="强制" in ev.raw_text)
     
+    if check_file_hash(BUILD_TEMP) or check_file_hash(MAP_BUILD_TEMP):    
+        await download_all_resource()
+    
     build_updated = copy_if_different(BUILD_TEMP, BUILD_PATH, "安全工具资源")
     map_updated = copy_if_different(MAP_BUILD_TEMP, MAP_BUILD_PATH, "伤害计算资源")
 
@@ -56,6 +59,10 @@ async def startup():
     await reload_all_modules()  # 已有资源，先加载，不然检查资源列表太久了
     logger.info("[鸣潮] 等待资源下载完成...")
     await download_all_resource()
+    
+    logger.info("[鸣潮] 资源下载完成，开始校验...")
+    if check_file_hash(BUILD_TEMP) or check_file_hash(MAP_BUILD_TEMP):    
+        await download_all_resource()
 
     build_updated = copy_if_different(BUILD_TEMP, BUILD_PATH, "安全工具资源", soft=True)
     map_updated = copy_if_different(MAP_BUILD_TEMP, MAP_BUILD_PATH, "伤害计算资源", soft=True)
@@ -78,6 +85,9 @@ async def auto_download_resource():
         await asyncio.sleep(delay_seconds)
     logger.info("[鸣潮] 定时任务: 开始下载全部资源...")
     await download_all_resource()
+
+    if check_file_hash(BUILD_TEMP) or check_file_hash(MAP_BUILD_TEMP):    
+        await download_all_resource()
 
     build_updated = copy_if_different(BUILD_TEMP, BUILD_PATH, "安全工具资源", soft=True)
     map_updated = copy_if_different(MAP_BUILD_TEMP, MAP_BUILD_PATH, "伤害计算资源", soft=True)

@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 import hashlib
 from pathlib import Path
@@ -21,6 +22,48 @@ def get_file_hash(file_path):
     return hash_md5.hexdigest()
 
 
+def get_file_hash_sha256(file_path):
+    """计算单个文件的 SHA256 哈希值"""
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        hash_sha256.update(f.read())
+    return hash_sha256.hexdigest()
+
+
+def check_file_hash(path: Path) -> bool:
+    hash_file = path / "hash.json"
+    if not hash_file.exists():
+        return False
+
+    try:
+        with open(hash_file, 'r', encoding='utf-8') as f:
+            hash_data = json.load(f)
+    except Exception as e:
+        logger.error(f"[鸣潮] 读取 hash.json 失败: {e}")
+        return False
+
+    deleted = False
+
+    for file in path.iterdir():
+        if file.is_file() and file.suffix != '.json':
+            filename = file.name
+
+            if filename in hash_data:
+                try:
+                    file_hash = get_file_hash_sha256(file)
+                    expected_hash = hash_data[filename]
+
+                    if file_hash != expected_hash:
+                        logger.info(f"[鸣潮] 文件 {filename} hash 不匹配，已删除")
+                        file.unlink()
+                        deleted = True
+                except Exception as e:
+                    logger.error(f"[鸣潮] 检查文件 {filename} hash 失败: {e}")
+
+    return deleted
+
+
+
 def copy_if_different(src, dst, name, soft=False):
     """复制并返回是否有更新"""
     if not os.path.exists(src):
@@ -32,7 +75,7 @@ def copy_if_different(src, dst, name, soft=False):
     dst_path = Path(dst)
     if dst_path.exists():
         dst_py_count = count_files(dst_path, "*.py")
-        if src_total_files and dst_py_count >= src_total_files:
+        if src_total_files and dst_py_count >= src_total_files - 1:
             return False
 
     needs_update = False
