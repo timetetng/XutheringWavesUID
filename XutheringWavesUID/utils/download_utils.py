@@ -81,7 +81,7 @@ def copy_if_different(src, dst, name, soft=False):
     needs_update = False
 
     for src_file in sorted(src_path.rglob("*")):
-        if src_file.is_file():
+        if src_file.is_file() and not src_file.suffix == ".json":
             rel_path = src_file.relative_to(src)
             dst_file = Path(dst) / rel_path
 
