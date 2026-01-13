@@ -176,10 +176,12 @@ async def get_gacha_log_by_file(bot: Bot, ev: Event):
     # 没有uid 就别导了吧
     uid = await WavesBind.get_uid_by_game(ev.user_id, ev.bot_id)
     if not uid:
-        return await bot.send(ERROR_CODE[WAVES_CODE_103])
+        await bot.logger.info(f"[JSON导入抽卡] 用户 {ev.user_id} 未绑定UID，忽略此次导入")
+        return
     _, ck = await waves_api.get_ck_result(uid, ev.user_id, ev.bot_id)
     if not ck:
-        return await bot.send(ERROR_CODE[WAVES_CODE_102])
+        await bot.logger.info(f"[JSON导入抽卡] 用户 {ev.user_id} (UID:{uid}) 未登录或Cookie失效，忽略此次导入")
+        return
 
     # 检查冷却
     remaining_time = can_import_gacha(ev.user_id, uid)
