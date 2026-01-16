@@ -207,7 +207,11 @@ async def send_card_info(bot: Bot, ev: Event):
     from .draw_refresh_char_card import draw_refresh_char_detail_img
 
     buttons = []
-    msg, _ = await draw_refresh_char_detail_img(bot, ev, user_id, uid, buttons)
+    msg, num_updated = await draw_refresh_char_detail_img(bot, ev, user_id, uid, buttons)
+    if num_updated == 1:
+        from ..wutheringwaves_config import PREFIX
+        single_refresh_notice = f"[鸣潮] 本次仅刷新一个角色。如仅需刷新单角色，建议使用“{PREFIX}刷新xx面板”"
+        await bot.send(single_refresh_notice)
     if isinstance(msg, str) or isinstance(msg, bytes):
         return await bot.send_option(msg, buttons)
 
@@ -237,8 +241,8 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
     from .draw_refresh_char_card import draw_refresh_char_detail_img
 
     buttons = []
-    msg, is_updated = await draw_refresh_char_detail_img(bot, ev, user_id, uid, buttons, refresh_type)
-    if is_updated: # 必定有图片
+    msg, num_updated = await draw_refresh_char_detail_img(bot, ev, user_id, uid, buttons, refresh_type)
+    if num_updated > 0: # 必定有图片
         from ..wutheringwaves_config import WutheringWavesConfig
         refresh_behavior = WutheringWavesConfig.get_config("RefreshSingleCharBehavior").data
 

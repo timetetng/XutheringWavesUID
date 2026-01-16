@@ -57,38 +57,85 @@ refresh_role_map = {
     "share_14.webp": (1000, 180, 2560, 1320),
 }
 
+# 全部刷新的间隔配置
 refresh_interval: int = WutheringWavesConfig.get_config("RefreshInterval").data
+# 单角色刷新的间隔配置
+refresh_single_char_interval: int = WutheringWavesConfig.get_config("RefreshSingleCharInterval").data
 
+# 全部刷新的缓存
 if refresh_interval > 0:
     timed_cache = TimedCache(timeout=refresh_interval, maxsize=10000)
 else:
     timed_cache = None
 
+# 单角色刷新的缓存
+if refresh_single_char_interval > 0:
+    timed_cache_single = TimedCache(timeout=refresh_single_char_interval, maxsize=10000)
+else:
+    timed_cache_single = None
 
-def can_refresh_card(user_id: str, uid: str) -> int:
-    """检查是否可以刷新角色面板"""
+
+def can_refresh_card(user_id: str, uid: str, is_single_refresh: bool = False) -> int:
+    """检查是否可以刷新角色面板
+
+    Args:
+        user_id: 用户ID
+        uid: 游戏UID
+        is_single_refresh: 是否为单角色刷新
+
+    Returns:
+        剩余冷却时间(秒),0表示可以刷新
+    """
     key = f"{user_id}_{uid}"
-    if timed_cache:
+    cache = timed_cache_single if is_single_refresh else timed_cache
+
+    if cache:
         now = int(time.time())
-        time_stamp = timed_cache.get(key)
+        time_stamp = cache.get(key)
         if time_stamp and time_stamp > now:
             return time_stamp - now
     return 0
 
 
-def set_cache_refresh_card(user_id: str, uid: str):
-    """设置缓存"""
-    if timed_cache:
+def set_cache_refresh_card(user_id: str, uid: str, is_single_refresh: bool = False):
+    """设置缓存
+
+    Args:
+        user_id: 用户ID
+        uid: 游戏UID
+        is_single_refresh: 是否为单角色刷新
+    """
+    cache = timed_cache_single if is_single_refresh else timed_cache
+    interval = refresh_single_char_interval if is_single_refresh else refresh_interval
+
+    if cache:
         key = f"{user_id}_{uid}"
-        timed_cache.set(key, int(time.time()) + refresh_interval)
+        cache.set(key, int(time.time()) + interval)
 
 
-def get_refresh_interval_notify(time_stamp: int):
+def get_refresh_interval_notify(time_stamp: int, is_single_refresh: bool = False):
+    """获取刷新间隔通知文案
+
+    Args:
+        time_stamp: 剩余冷却时间(秒)
+        is_single_refresh: 是否为单角色刷新
+
+    Returns:
+        通知文案
+    """
     try:
-        value: str = WutheringWavesConfig.get_config("RefreshIntervalNotify").data
+        if is_single_refresh:
+            value: str = WutheringWavesConfig.get_config("RefreshSingleCharIntervalNotify").data
+            default = "请等待{0}s后尝试刷新角色面板！"
+        else:
+            value: str = WutheringWavesConfig.get_config("RefreshIntervalNotify").data
+            default = "请等待{0}s后尝试刷新面板！"
         return value.format(time_stamp)
     except Exception:
-        return "请等待{0}s后尝试刷新面板！".format(time_stamp)
+        if is_single_refresh:
+            return "请等待{0}s后尝试刷新角色面板！".format(time_stamp)
+        else:
+            return "请等待{0}s后尝试刷新面板！".format(time_stamp)
 
 
 async def get_refresh_role_img(width: int, height: int):
@@ -156,18 +203,21 @@ async def draw_refresh_char_detail_img(
     buttons: List[WavesButton],
     refresh_type: Union[str, List[str]] = "all",
 ):
-    time_stamp = can_refresh_card(user_id, uid)
+    # 判断是单角色刷新还是全部刷新
+    is_single_refresh = refresh_type != "all"
+
+    time_stamp = can_refresh_card(user_id, uid, is_single_refresh)
     if time_stamp > 0:
-        return get_refresh_interval_notify(time_stamp), False
+        return get_refresh_interval_notify(time_stamp, is_single_refresh), 0
     self_ck, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
     if not ck:
-        return error_reply(WAVES_CODE_102), False
+        return error_reply(WAVES_CODE_102), 0
     # 账户数据
     account_info = await waves_api.get_base_info(uid, ck)
     if not account_info.success:
-        return account_info.throw_msg(), False
+        return account_info.throw_msg(), 0
     if not account_info.data:
-        return "用户未展示数据", False
+        return "用户未展示数据", 0
     account_info = AccountBaseInfo.model_validate(account_info.data)
     # 更新group id
     await WavesBind.insert_waves_uid(user_id, ev.bot_id, uid, ev.group_id, lenth_limit=9)
@@ -176,7 +226,7 @@ async def draw_refresh_char_detail_img(
     if ev.command in ["面板", "面包", "🍞", "mb"]:
         all_waves_datas = await get_all_role_detail_info_list(uid)
         if not all_waves_datas:
-            return "暂无面板数据", False
+            return "暂无面板数据", 0
         waves_map = {
             "refresh_update": {},
             "refresh_unchanged": {i.role.roleId: i.model_dump() for i in all_waves_datas},
@@ -192,7 +242,7 @@ async def draw_refresh_char_detail_img(
             refresh_type=refresh_type,
         )
         if isinstance(waves_datas, str):
-            return waves_datas, False
+            return waves_datas, 0
 
     role_detail_list = [
         RoleDetailData(**r) for key in ["refresh_update", "refresh_unchanged"] for r in waves_map[key].values()
@@ -325,8 +375,8 @@ async def draw_refresh_char_detail_img(
     img.paste(refresh_bar, (0, 300), refresh_bar)
     img = add_footer(img, 600, 20)
     img = await convert_img(img)
-    set_cache_refresh_card(user_id, uid)
-    return img, role_update > 0
+    set_cache_refresh_card(user_id, uid, is_single_refresh)
+    return img, role_update
 
 
 async def draw_pic(char_rank: WavesCharRank, isUpdate=False):

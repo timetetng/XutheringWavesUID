@@ -109,15 +109,26 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
     ),
     "AnnMinuteCheck": GsIntConfig("公告推送时间检测（单位min）", "公告推送时间检测（单位min）", 10, 60),
     "RefreshInterval": GsIntConfig(
-        "刷新面板间隔，重启生效（单位秒）",
-        "刷新面板间隔，重启生效（单位秒）",
+        "刷新全部面板间隔，重启生效（单位秒）",
+        "刷新全部面板间隔，重启生效（单位秒）",
+        0,
+        600,
+    ),
+    "RefreshSingleCharInterval": GsIntConfig(
+        "刷新单角色面板间隔，重启生效（单位秒）",
+        "刷新单角色面板间隔，重启生效（单位秒）",
         0,
         600,
     ),
     "RefreshIntervalNotify": GsStrConfig(
-        "刷新面板间隔通知文案",
-        "刷新面板间隔通知文案",
+        "刷新全部面板间隔通知文案",
+        "刷新全部面板间隔通知文案",
         "请等待{}s后尝试刷新面板！",
+    ),
+    "RefreshSingleCharIntervalNotify": GsStrConfig(
+        "刷新单角色面板间隔通知文案",
+        "刷新单角色面板间隔通知文案",
+        "请等待{}s后尝试刷新角色面板！",
     ),
     "HideUid": GsBoolConfig(
         "隐藏uid",
