@@ -94,7 +94,7 @@ async def draw_card_help():
     )
     gongfang = "\n".join(
         [
-                    "工坊获取方式",
+                    "一、从工坊导入",
                 "要求先使用任意方式通过链接导入记录",
                 f"{PREFIX}导入抽卡链接 UID（9位数字）",
                 "\n",
@@ -102,39 +102,42 @@ async def draw_card_help():
     )
     yun = "\n".join(
         [
-            "云游戏获取方式",
+            "二、云鸣潮获取",
             "1.复制以下链接到浏览器打开",
             "https://ga.loping151.site",
             "2.登录后,依次点击`刷新记录`,`复制记录`按钮",
+            "\n",
         ]
     )
 
 
     android = "\n".join(
         [
-            "安卓手机获取链接方式",
+            "三、安卓手机获取链接方式",
             "1.打开游戏抽卡界面",
             "2.关闭网络或打开飞行模式",
             "3.点开换取记录",
-            "4.长按左上角区域，全选，复制"
+            "4.长按左上角区域，全选，复制",
+            "\n",
         ]
     )
 
     ios = "\n".join(
         [
-            "苹果手机获取方式",
+            "四、苹果手机获取方式",
             "1.使用Stream抓包（详细教程网上搜索）",
             "2.关键字搜索:[game2]的请求",
             "3.点击`请求`",
             "4.点击最下方的`查看JSON`，全选，复制",
             "国服域名：[gmserver-api.aki-game2.com]",
-            "国际服域名：[gmserver-api.aki-game2.net]"
+            "国际服域名：[gmserver-api.aki-game2.net]",
+            "\n",
         ]
     )
 
     pc1 = "\n".join(
         [
-            "PC获取方式1",
+            "五、PC获取方式1",
             "1.打开游戏抽卡界面，点开换取记录",
             "2.在鸣潮安装的目录下进入目录：`Wuthering Waves\\Wuthering Waves Game\\Client\\Saved\\Logs`",
             "3.找到文件`Client.log`并用记事本打开",
@@ -146,7 +149,7 @@ async def draw_card_help():
 
     pc2 = "\n".join(
         [
-            "PC获取方式2",
+            "六、PC获取方式2",
             "1.打开游戏抽卡界面，点开换取记录",
             "2.Win + S 打开 Windows 搜索栏，搜索 PowerShell",
             "3.右键点击，选择“以管理员身份打开”",
