@@ -285,7 +285,7 @@ async def send_char_detail_msg(bot: Bot, ev: Event):
 
 
 @waves_new_char_detail.on_regex(
-    rf"(?P<waves_id>\d+)?(?P<char>{PATTERN})(?P<query_type>面板|面包|🍞|mb|伤害(?P<damage>(\d+)?))(?P<is_pk>pk|对比|PK|比|比较)?(\s*)?(?P<change_list>((换[^换]*)*)?)",
+    rf"(?P<waves_id>\d{{9}})?(?P<char>{PATTERN})(?P<query_type>面板|面包|🍞|mb|伤害(?P<damage>(\d+)?))(?P<is_pk>pk|对比|PK|比|比较)?(\s*)?(?P<change_list>((换[^换]*)*)?)",
     block=True,
 )
 async def send_char_detail_msg2(bot: Bot, ev: Event):
@@ -308,7 +308,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
         char = char.replace("极限", "").replace("limit", "")
 
     if damage:
-        char = f"{char}{damage}"
+        char = f"{char}伤害{damage}"
     if not char:
         return
     logger.debug(f"[鸣潮] [角色面板] CHAR: {char} {ev.regex_dict}")
@@ -376,7 +376,7 @@ async def send_char_detail_msg2(bot: Bot, ev: Event):
             return await bot.send(im, at_sender)
 
 
-@waves_new_char_detail.on_regex(rf"^(?P<waves_id>\d+)?(?P<char>{PATTERN})(权重|qz)$", block=True)
+@waves_new_char_detail.on_regex(rf"^(?P<waves_id>\d{{9}})?(?P<char>{PATTERN})(权重|qz)$", block=True)
 async def send_char_detail_msg2_weight(bot: Bot, ev: Event):
     waves_id = ev.regex_dict.get("waves_id")
     char = ev.regex_dict.get("char")

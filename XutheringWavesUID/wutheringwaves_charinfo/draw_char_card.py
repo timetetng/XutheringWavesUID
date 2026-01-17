@@ -194,7 +194,7 @@ async def get_one_rank(item: OneRankRequest) -> Optional[OneRankResponse]:
 
 
 def parse_text_and_number(text):
-    match = re.match(r"([^\d]+)(\d*)", text)
+    match = re.match(r"([^\d]+)伤害(\d*)", text)
 
     if match:
         text_part = match.group(1)  # 获取文字部分
