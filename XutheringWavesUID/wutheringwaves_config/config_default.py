@@ -221,7 +221,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
     "HelpExtraModules": GsListStrConfig(
         "帮助显示额外模块（重启生效）",
         "在帮助中额外显示的模块：todayecho(梭哈)、scoreecho(评分)，需自行安装对应插件",
-        [],
+        ["todayecho", "scoreecho"],
     ),
     "ActiveUserDays": GsIntConfig(
         "活跃账号认定天数",

@@ -86,7 +86,7 @@ async def get_help(pm: int):
     # 从 ShowConfig 获取自定义配置，如果未配置或路径不存在则使用默认值
     banner_bg_config = ShowConfig.get_config("HelpBannerBgUpload").data
     help_bg_config = ShowConfig.get_config("HelpBgUpload").data
-    icon_path_config = ShowConfig.get_config("HelpIconUpload").data
+    plugin_icon_config = ShowConfig.get_config("HelpIconUpload").data
     column_config = ShowConfig.get_config("HelpColumn").data
 
     # 使用配置的路径（如果存在且配置了）或默认路径
@@ -100,15 +100,16 @@ async def get_help(pm: int):
     else:
         help_bg_path = TEXT_PATH / "bg.jpg"
 
-    if icon_path_config and Path(icon_path_config).exists():
-        icon_path_value = Path(icon_path_config)
+    # plugin_icon: 插件主图标
+    if plugin_icon_config and Path(plugin_icon_config).exists():
+        plugin_icon_path = Path(plugin_icon_config)
     else:
-        icon_path_value = ICON_PATH
+        plugin_icon_path = ICON
 
     return await get_new_help(
         plugin_name="XutheringWavesUID",
         plugin_info={f"v{XutheringWavesUID_version}": ""},
-        plugin_icon=Image.open(ICON),
+        plugin_icon=Image.open(plugin_icon_path),
         plugin_help=plugin_help,
         plugin_prefix=PREFIX,
         help_mode="dark",
@@ -117,7 +118,7 @@ async def get_help(pm: int):
         help_bg=Image.open(help_bg_path),
         cag_bg=Image.open(TEXT_PATH / "cag_bg.png"),
         item_bg=Image.open(TEXT_PATH / "item.png"),
-        icon_path=icon_path_value,
+        icon_path=ICON_PATH,
         footer=get_footer(),
         enable_cache=False,
         column=column_config,
