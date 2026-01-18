@@ -17,7 +17,8 @@ def _import_cv2():
         return cv2
     except Exception:
         logger.warning("[鸣潮] 未安装opencv-python，安装后可使用面板图重复判断、提取面板图等功能。")
-        logger.info("[鸣潮] 安装方法: 在当前目录下执行 uv pip install opencv-python")
+        logger.info("[鸣潮] 安装方法 Linux/Mac: 在当前目录下执行 source .venv/bin/activate && uv pip install opencv-python")
+        logger.info("[鸣潮] 安装方法 Windows: 在当前目录下执行 .venv\\Scripts\\activate; uv pip install opencv-python")
         return None
     
 def _import_np():

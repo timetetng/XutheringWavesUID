@@ -15,7 +15,8 @@ def _import_playwright():
         return async_playwright
     except ImportError:
         logger.warning("[鸣潮] 未安装 playwright，无法使用 HTML 渲染公告功能。")
-        logger.info("[鸣潮] 安装方法: 在当前目录下执行 uv pip install playwright && uv run playwright install chromium")
+        logger.info("[鸣潮] 安装方法 Linux/Mac: 在当前目录下执行 source .venv/bin/activate && uv pip install playwright && uv run playwright install chromium")
+        logger.info("[鸣潮] 安装方法 Windows: 在当前目录下执行 .venv\Scripts\\activate; uv pip install playwright; uv run playwright install chromium")
         return None
 
 async_playwright = _import_playwright()
