@@ -251,6 +251,74 @@ async def delete_custom_card(bot: Bot, ev: Event, char: str, hash_id: str, targe
     msg = f"[鸣潮] 角色【{char}】{type_label}图 " + "；".join(msg_parts)
     return await bot.send((" " if at_sender else "") + msg, at_sender)
 
+async def delete_global_custom_card(bot: Bot, ev: Event, hash_id: str, target_type: str = "card"):
+    """
+    不指定角色，全局遍历删除指定ID的图片
+    """
+    at_sender = True if ev.group_id else False
+    type_label = CUSTOM_PATH_NAME_MAP.get(target_type, target_type)
+
+    # 1. 获取该类型图片的根目录
+    base_dir = CUSTOM_PATH_MAP.get(target_type, CUSTOM_CARD_PATH)
+
+    # 2. 处理输入的ID列表 (支持逗号分隔)
+    hash_ids = set(id.strip() for id in hash_id.replace("，", ",").split(",") if id.strip())
+
+    if not hash_ids:
+        msg = f"[鸣潮] 未提供有效的{type_label}图ID！"
+        return await bot.send((" " if at_sender else "") + msg, at_sender)
+
+    deleted_info = []     # 记录删除详情：
+    not_found_ids = list(hash_ids) # 初始假设所有ID都未找到
+
+    # 3. 遍历根目录下所有角色的文件夹
+    if base_dir.exists():
+        # 遍历所有角色目录
+        for char_dir in base_dir.iterdir():
+            if not char_dir.is_dir():
+                continue
+
+            # 找到该文件夹下所有图片
+            files_to_check = [
+                f for f in char_dir.iterdir()
+                if f.is_file() and f.suffix in [".jpg", ".png", ".jpeg", ".webp"]
+            ]
+
+            # 检查每张图片是否命中ID
+            for f in files_to_check:
+                current_id = get_hash_id(f.name)
+
+                if current_id in hash_ids:
+                    try:
+                        # 执行删除操作
+                        f.unlink()
+                        delete_orb_cache(f) # 清除对应的特征缓存
+
+                        # 获取角色名以便反馈
+                        char_name = easy_id_to_name(char_dir.name, char_dir.name)
+                        deleted_info.append(f"{current_id}({char_name})")
+
+                        # 从未找到列表中移除
+                        if current_id in not_found_ids:
+                            not_found_ids.remove(current_id)
+
+                    except Exception as e:
+                        logger.exception(f"全局删除文件失败: {f} - {e}")
+
+    # 4. 构建返回消息
+    msg_parts = []
+    if deleted_info:
+        msg_parts.append(f"成功删除:\n {', '.join(deleted_info)}")
+
+    if not_found_ids:
+        msg_parts.append(f"未找到ID:\n {', '.join(not_found_ids)}")
+
+    if not deleted_info and not not_found_ids:
+        msg = f"[鸣潮] 没有任何操作发生。"
+    else:
+        msg = f"[鸣潮] 全局删除{type_label}图结果:\n " + "；".join(msg_parts)
+
+    return await bot.send((" " if at_sender else "") + msg, at_sender)
 
 async def delete_all_custom_card(bot: Bot, ev: Event, char: str, target_type: str = "card"):
     at_sender = True if ev.group_id else False
