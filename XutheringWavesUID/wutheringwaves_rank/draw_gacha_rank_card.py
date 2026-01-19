@@ -315,12 +315,12 @@ async def draw_gacha_rank_card(bot, ev: Event) -> Union[str, bytes]:
 
         # UP平均抽数
         up_color = get_stat_color(rankInfo.char_avg, 76, 86)
-        role_bg_draw.text((460, 30), "UP", SPECIAL_GOLD, waves_font_20, "mm")
+        role_bg_draw.text((460, 30), "UP平均", SPECIAL_GOLD, waves_font_20, "mm")
         role_bg_draw.text((460, 70), f"{rankInfo.char_avg:.1f}", up_color, waves_font_28, "mm")
 
         # 武器平均抽数
         weapon_color = get_stat_color(rankInfo.weapon_avg, 49, 59)
-        role_bg_draw.text((600, 30), "武器", SPECIAL_GOLD, waves_font_20, "mm")
+        role_bg_draw.text((600, 30), "武器平均", SPECIAL_GOLD, waves_font_20, "mm")
         role_bg_draw.text((600, 70), f"{rankInfo.weapon_avg:.1f}", weapon_color, waves_font_28, "mm")
 
         # 加权抽数

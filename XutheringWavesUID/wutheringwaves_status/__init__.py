@@ -26,7 +26,7 @@ register_status(
     "XutheringWavesUID",
     {
         "绑定UID": get_add_num,
-        "登录账户": get_user_num,
-        "活跃人数": get_active_user_num,
+        "登录账号": get_user_num,
+        "活跃账号数": get_active_user_num,
     },
 )
