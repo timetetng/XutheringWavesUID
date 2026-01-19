@@ -20,6 +20,7 @@ from .upload_card import (
     get_custom_card_list,
     delete_all_custom_card,
     compress_all_custom_card,
+    delete_global_custom_card,
 )
 from .card_utils import (
     get_char_id_and_name,
@@ -28,7 +29,7 @@ from .card_utils import (
     send_custom_card_single_by_id,
     send_repeated_custom_cards,
 )
-
+waves_delete_global_card = SV("waves全局删除面板图", priority=3, pm=1)
 waves_upload_char = SV("waves上传面板图", priority=3, pm=1)
 waves_char_card_single = SV("waves查看面板图", priority=3)
 waves_char_card_list = SV("waves面板图列表", priority=3, pm=1)
@@ -73,7 +74,7 @@ async def upload_char_img(bot: Bot, ev: Event):
         target_type=TYPE_MAP.get(ev.regex_dict.get("type"), "card"),
         is_force=is_force,
     )
-    
+
 
 @waves_char_card_list.on_regex(rf"^(?P<char>{PATTERN})(?P<type>面板|面包|🍞|card|体力|每日|mr|背景|bg)图列表$", block=True)
 async def get_char_card_list(bot: Bot, ev: Event):
@@ -93,6 +94,23 @@ async def delete_char_card(bot: Bot, ev: Event):
         return
     await delete_custom_card(bot, ev, char, hash_id, target_type=TYPE_MAP.get(ev.regex_dict.get("type"), "card"))
 
+@waves_delete_global_card.on_regex(
+    rf"^删除(?P<type>面板|面包|🍞|体力|每日|mr|背景|bg)图\s*(?P<hash_id>[a-zA-Z0-9,，]+)$", block=True
+)
+async def delete_global_char_card(bot: Bot, ev: Event):
+    # 获取正则匹配到的 ID 和 类型
+    hash_id = ev.regex_dict.get("hash_id")
+    raw_type = ev.regex_dict.get("type")
+
+    if not hash_id:
+        return
+
+    await delete_global_custom_card(
+        bot,
+        ev,
+        hash_id,
+        target_type=TYPE_MAP.get(raw_type, "card")
+    )
 
 @waves_delete_all_card.on_regex(rf"^删除全部(?P<char>{PATTERN})(?P<type>面板|面包|🍞|card|体力|每日|mr|背景|bg)图$", block=True)
 async def delete_all_char_card(bot: Bot, ev: Event):
@@ -105,8 +123,8 @@ async def delete_all_char_card(bot: Bot, ev: Event):
 @waves_compress_card.on_fullmatch(("压缩面板图", "压缩面包图", "压缩🍞图", "压缩背景图", "压缩体力图", "压缩card图", "压缩bg图", "压缩mr图"), block=True)
 async def compress_char_card(bot: Bot, ev: Event):
     await compress_all_custom_card(bot, ev)
-    
-    
+
+
 @waves_repeated_card.on_regex(
     r"^查看重复(?P<type>面板|面包|🍞|背景|体力|card|bg|mr)图(?P<threshold>\s*\d+(?:\.\d+)?)?$",
     block=True,
