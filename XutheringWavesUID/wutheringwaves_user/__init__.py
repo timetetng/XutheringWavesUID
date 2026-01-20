@@ -203,7 +203,7 @@ async def waves_delete_inactive_group_members(bot: Bot, ev: Event):
             inactive_uids.add(uid)
 
     if not inactive_uids:
-        return await bot.send("[鸣潮] 本群暂无不活跃成员")
+        return await bot.send("[鸣潮] 本群暂无不活跃群成员")
 
     updated = 0
     for bind in binds:
@@ -223,10 +223,10 @@ async def waves_delete_inactive_group_members(bot: Bot, ev: Event):
         )
         updated += 1
         
-    logger.info(f"[鸣潮] 已移除不活跃成员 UID 数：{len(inactive_uids)}，更新绑定记录数：{updated}")
+    logger.info(f"[鸣潮] 已移除不活跃群成员 UID 数：{len(inactive_uids)}，更新绑定记录数：{updated}")
 
     return await bot.send(
-        f"[鸣潮] 已移除不活跃成员，UID 数：{len(inactive_uids)}"
+        f"[鸣潮] 已移除不活跃群成员，UID 数：{len(inactive_uids)}"
     )
 
 
