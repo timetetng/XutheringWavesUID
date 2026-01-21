@@ -39,6 +39,8 @@ git clone https://github.com/Loping151/XutheringWavesUID.git
 
 分析功能：[ScoreEcho](https://github.com/Loping151/ScoreEcho)
 
+体力推送功能：[RoverReminder](https://github.com/Loping151/RoverReminder)
+
 谁AT我功能：[AT_Tracker](https://github.com/Loping151/AT_Tracker)
 
 ## 丨安装提醒

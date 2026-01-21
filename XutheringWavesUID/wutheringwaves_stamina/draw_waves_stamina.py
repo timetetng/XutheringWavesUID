@@ -28,7 +28,7 @@ from ..utils.constants import WAVES_GAME_ID
 from ..utils.waves_api import waves_api
 from ..utils.error_reply import ERROR_CODE, WAVES_CODE_102, WAVES_CODE_103
 from ..utils.name_convert import char_name_to_char_id
-from ..utils.database.models import WavesBind, WavesUser
+from ..utils.database.models import WavesBind, WavesUser, WavesStaminaRecord
 from ..utils.api.request_util import KuroApiResp
 from ..utils.fonts.waves_fonts import (
     waves_font_24,
@@ -61,6 +61,16 @@ async def seconds2hours(seconds: int) -> str:
 async def process_uid(uid, ev):
     ck = await waves_api.get_self_waves_ck(uid, ev.user_id, ev.bot_id)
     if not ck:
+        try:
+            await WavesStaminaRecord.update_ck_valid(
+                user_id=ev.user_id,
+                bot_id=ev.bot_id,
+                bot_self_id=ev.bot_self_id or "",
+                uid=uid,
+                is_ck_valid=False,
+            )
+        except Exception:
+            logger.exception("[鸣潮][每日信息]体力记录CK有效状态更新失败")
         return None
 
     # 并行请求所有相关 API
@@ -79,6 +89,20 @@ async def process_uid(uid, ev):
 
     daily_info = DailyData.model_validate(daily_info_res.data)
     account_info = AccountBaseInfo.model_validate(account_info_res.data)
+
+    try:
+        mr_value = daily_info.energyData.cur if daily_info.energyData else None
+        await WavesStaminaRecord.upsert_stamina_query(
+            user_id=ev.user_id,
+            bot_id=ev.bot_id,
+            bot_self_id=ev.bot_self_id or "",
+            uid=uid,
+            mr_query_time=int(time.time()),
+            mr_value=mr_value,
+            is_ck_valid=True,
+        )
+    except Exception:
+        logger.exception("[鸣潮][每日信息]体力查询记录写入失败")
 
     return {
         "daily_info": daily_info,
@@ -213,14 +237,12 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         info = Image.open(TEXT_PATH / "main_bar_bg.png").convert("RGBA")
 
     base_info_draw = ImageDraw.Draw(base_info_bg)
-    # [恢复逻辑] Base Info 不加底色，直接绘制文字
     base_info_draw.text((275, 120), f"{daily_info.roleName[:7]}", GREY, waves_font_30, "lm")
     base_info_draw.text((226, 173), f"特征码:  {daily_info.roleId}", GOLD, waves_font_25, "lm")
     # 账号基本信息，由于可能会没有，放在一起
 
     title_bar = Image.open(TEXT_PATH / "title_bar.png")
     title_bar_draw = ImageDraw.Draw(title_bar)
-    # [恢复逻辑] Title Bar 不加底色，直接绘制文字
     title_bar_draw.text((480, 125), "战歌重奏", GREY, waves_font_26, "mm")
     color = RED if account_info.weeklyInstCount != 0 else GREEN
     if account_info.weeklyInstCountLimit is not None and account_info.weeklyInstCount is not None:
@@ -240,9 +262,6 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         waves_font_42,
         "mm",
     )
-
-    # logo_img = get_small_logo(2)
-    # title_bar.alpha_composite(logo_img, dest=(760, 60))
 
     color = RED if account_info.rougeScore != account_info.rougeScoreLimit else GREEN
     title_bar_draw.text((810, 125), "千道门扉的异想", GREY, waves_font_26, "mm")

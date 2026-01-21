@@ -16,20 +16,6 @@ HELP_DATA = Path(__file__).parent / "help.json"
 ICON_PATH = Path(__file__).parent / "icon_path"
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
-HELP_DATA_NO_SIGN = Path(__file__).parent / "help_no_sign.json"
-
-if not HELP_DATA_NO_SIGN.exists():
-    with open(HELP_DATA, "r", encoding="utf-8") as f:
-        help_content = json.load(f)
-        help_content["个人服务"]["data"] = help_content["个人服务"]["data"][2:]
-        help_content["bot主人功能"]["data"] = help_content["bot主人功能"]["data"][2:]
-    with open(HELP_DATA_NO_SIGN, "w", encoding="utf-8") as f:
-        json.dump(help_content, f, ensure_ascii=False, indent=4)
-
-if not WutheringWavesConfig.get_config("HelpShowSign").data:
-    HELP_DATA = HELP_DATA_NO_SIGN
-
-
 def get_help_data() -> Dict[str, PluginHelp]:
     # 读取文件内容
     with open(HELP_DATA, "r", encoding="utf-8") as file:
@@ -38,7 +24,44 @@ def get_help_data() -> Dict[str, PluginHelp]:
     # 获取额外模块配置
     extra_modules = WutheringWavesConfig.get_config("HelpExtraModules").data
 
-    # 硬编码的额外帮助内容
+    sign_help_items = [
+        {
+            "name": "签到",
+            "desc": "鸣潮签到",
+            "eg": "签到",
+            "need_ck": True,
+            "need_sk": False,
+            "need_admin": False,
+        },
+        {
+            "name": "开启自动签到",
+            "desc": "开启每天的自动签到功能",
+            "eg": "开启自动签到",
+            "need_ck": True,
+            "need_sk": False,
+            "need_admin": False,
+        },
+    ]
+
+    sign_admin_help_items = [
+        {
+            "name": "全部重新签到",
+            "desc": "全部重新签到所有人",
+            "eg": "全部签到",
+            "need_ck": False,
+            "need_sk": False,
+            "need_admin": True,
+        },
+        {
+            "name": "订阅自动签到结果",
+            "desc": "订阅自动签到结果",
+            "eg": "订阅签到结果",
+            "need_ck": False,
+            "need_sk": False,
+            "need_admin": True,
+        },
+    ]
+    
     todayecho_help = {
         "name": "梭哈",
         "desc": "模拟梭哈声骸",
@@ -66,15 +89,52 @@ def get_help_data() -> Dict[str, PluginHelp]:
             "need_admin": False,
         },
     ]
+    
+    roverreminder_help_items = [
+        {
+            "name": "推送邮箱",
+            "desc": "设置体力推送的邮箱",
+            "eg": "推送邮箱 邮箱名",
+            "need_ck": True,
+            "need_sk": False,
+            "need_admin": False,
+        },
+        {
+            "name": "开启推送",
+            "desc": "开启体力推送",
+            "eg": "开启/关闭体力推送",
+            "need_ck": True,
+            "need_sk": False,
+            "need_admin": False,
+        },
+        {
+            "name": "推送阈值",
+            "desc": "设置体力推送阈值",
+            "eg": "推送阈值 120",
+            "need_ck": True,
+            "need_sk": False,
+            "need_admin": False,
+        },
+    ]
 
     # 根据配置追加额外帮助
-    if "todayecho" in extra_modules:
+    if "todayecho" in extra_modules or "all" in extra_modules:
         if "个人服务" in help_content:
             help_content["个人服务"]["data"].append(todayecho_help)
 
-    if "scoreecho" in extra_modules:
+    if "scoreecho" in extra_modules or "all" in extra_modules:
         if "信息查询" in help_content:
             help_content["信息查询"]["data"].extend(scoreecho_help_items)
+
+    if "roversign" in extra_modules or "all" in extra_modules:
+        if "个人服务" in help_content:
+            help_content["个人服务"]["data"].extend(sign_help_items)
+        if "bot主人功能" in help_content:
+            help_content["bot主人功能"]["data"].extend(sign_admin_help_items)
+            
+    if "roverreminder" in extra_modules or "all" in extra_modules:
+        if "个人服务" in help_content:
+            help_content["个人服务"]["data"].extend(roverreminder_help_items)
 
     return help_content
 

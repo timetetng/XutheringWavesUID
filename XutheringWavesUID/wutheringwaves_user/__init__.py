@@ -12,7 +12,7 @@ from gsuid_core.models import Event
 from .deal import add_cookie, get_cookie, refresh_bind, delete_cookie
 from ..utils.button import WavesButton
 from ..utils.constants import WAVES_GAME_ID
-from ..utils.database.models import WavesBind, WavesUser
+from ..utils.database.models import WavesBind, WavesUser, WavesStaminaRecord
 from ..utils.database.waves_user_activity import WavesUserActivity
 from ..wutheringwaves_config import PREFIX, WutheringWavesConfig
 from ..wutheringwaves_user.login_succ import login_success_msg
@@ -333,6 +333,10 @@ async def send_waves_bind_uid_msg(bot: Bot, ev: Event):
             **{WavesBind.get_gameid_name(None): None},
         )
         if retcode == 0:
+            try:
+                await WavesStaminaRecord.delete_by_user(qid, ev.bot_id)
+            except Exception:
+                logger.exception("[鸣潮] 删除全部特征码时清理体力记录失败")
             msg = "[鸣潮] 删除全部特征码成功！"
             return await bot.send((" " if at_sender else "") + msg, at_sender)
         else:
