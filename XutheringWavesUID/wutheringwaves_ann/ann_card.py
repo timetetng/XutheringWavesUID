@@ -234,10 +234,13 @@ async def ann_detail_card(ann_id: int, is_check_time=False) -> Union[bytes, str,
     if not ann_list:
         raise Exception("获取游戏公告失败,请检查接口是否正常")
     content = [x for x in ann_list if x["id"] == ann_id]
-    if not content:
-        return "未找到该公告"
 
-    postId = content[0]["postId"]
+    if content:
+        postId = content[0]["postId"]
+    else:
+        postId = str(ann_id)
+        logger.info(f"公告ID {ann_id} 不在当前列表中，尝试直接作为postId查询")
+
     res = await waves_api.get_ann_detail(postId)
     if not res:
         return "未找到该公告"

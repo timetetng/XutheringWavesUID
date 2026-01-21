@@ -32,11 +32,30 @@ async def ann_(bot: Bot, ev: Event):
         img = await ann_list_card()
         return await bot.send(img)
 
-    ann_id = ann_id.replace("#", "")
-    if not ann_id.isdigit():
-        raise Exception("公告ID不正确")
+    if ann_id.startswith("列表"):
+        user_id = ann_id[2:].strip()
+        if user_id in ["飞行雪绒", "爱弥斯"]:
+            user_id = "30374418"
+        if not user_id.isdigit():
+            raise Exception("用户ID格式不正确")
+        img = await ann_list_card(user_id=user_id)
+        return await bot.send(img)
 
-    img = await ann_detail_card(int(ann_id))
+    ann_id = ann_id.replace("#", "")
+
+    if ann_id.isdigit():
+        img = await ann_detail_card(int(ann_id))
+    else:
+        from .utils.post_id_mapper import get_post_id_from_short
+        post_id = get_post_id_from_short(ann_id)
+        if post_id:
+            if post_id.isdigit():
+                img = await ann_detail_card(int(post_id))
+            else:
+                img = await ann_detail_card(post_id)
+        else:
+            img = await ann_detail_card(ann_id)
+
     return await bot.send(img)  # type: ignore
 
 
@@ -56,19 +75,16 @@ async def sub_ann_(bot: Bot, ev: Event):
     if ev.group_id:
         await WavesSubscribe.check_and_update_bot(ev.group_id, ev.bot_self_id)
 
-    # 检查是否已订阅
     data = await gs_subscribe.get_subscribe(task_name_ann)
     is_resubscribe = False
     if data:
         for subscribe in data:
             if subscribe.group_id == ev.group_id:
-                # 删除旧订阅
                 await gs_subscribe.delete_subscribe("session", task_name_ann, ev)
                 is_resubscribe = True
                 logger.info(f"[鸣潮公告] 群 {ev.group_id} 重新订阅，已删除旧订阅")
                 break
 
-    # 添加新订阅
     await gs_subscribe.add_subscribe(
         "session",
         task_name=task_name_ann,
@@ -139,7 +155,6 @@ async def check_waves_ann_state():
         return
 
     logger.info(f"[鸣潮公告] 更新公告id: {new_ann_need_send}")
-    # 这里先不删了，就是存
     save_ids = sorted(ids, reverse=True) + new_ann_ids
     WutheringWavesConfig.set_config("WavesAnnNewIds", list(set(save_ids)))
 
@@ -173,7 +188,6 @@ def clean_old_cache_files(directory: Path, days: int) -> tuple[int, float]:
             if not file_path.is_file():
                 continue
 
-            # 获取文件的创建时间（在某些系统上是修改时间）
             file_ctime = file_path.stat().st_ctime
 
             if file_ctime < cutoff_time:
@@ -188,7 +202,7 @@ def clean_old_cache_files(directory: Path, days: int) -> tuple[int, float]:
     except Exception as e:
         logger.error(f"清理目录失败 {directory}: {e}")
 
-    freed_space_mb = freed_space / (1024 * 1024)  # 转换为MB
+    freed_space_mb = freed_space / (1024 * 1024)
     return deleted_count, freed_space_mb
 
 
@@ -215,7 +229,7 @@ def clean_all_cache_files(directory: Path):
     except Exception as e:
         logger.error(f"清理目录失败 {directory}: {e}")
 
-    freed_space_mb = freed_space / (1024 * 1024)  # 转换为MB
+    freed_space_mb = freed_space / (1024 * 1024)
     return deleted_count, freed_space_mb
 
 
@@ -224,21 +238,18 @@ async def clean_cache_directories(days: int) -> str:
     total_count = 0
     total_space = 0.0
 
-    # 清理公告缓存
     ann_count, ann_space = clean_old_cache_files(ANN_CARD_PATH, days)
     if ann_count > 0:
         results.append(f"公告: {ann_count}个文件, {ann_space:.2f}MB")
         total_count += ann_count
         total_space += ann_space
 
-    # 清理日历缓存
     cal_count, cal_space = clean_old_cache_files(CALENDAR_PATH, days)
     if cal_count > 0:
         results.append(f"日历: {cal_count}个文件, {cal_space:.2f}MB")
         total_count += cal_count
         total_space += cal_space
 
-    # 清理wiki缓存（全部删除，不判断过期）
     wiki_count, wiki_space = clean_all_cache_files(WIKI_CACHE_PATH)
     if wiki_count > 0:
         results.append(f"Wiki: {wiki_count}个文件, {wiki_space:.2f}MB")
@@ -273,11 +284,9 @@ async def auto_clean_cache_daily():
     logger.info(f"[缓存清理] {result}")
 
 
-# 启动时执行一次清理
 @scheduler.scheduled_job("date")
 async def clean_cache_on_startup():
     """启动时清理一次缓存"""
-    # 延迟5秒执行，确保配置已加载
     await asyncio.sleep(5)
 
     days = WutheringWavesConfig.get_config("CacheDaysToKeep").data

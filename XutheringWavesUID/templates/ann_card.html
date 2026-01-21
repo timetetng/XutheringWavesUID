@@ -303,6 +303,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center;
             display: block;
         }
         
@@ -409,6 +410,19 @@
                  <div class="header-subtitle">{{ subtitle }}</div>
             </div>
         </div>
+
+        {% if user_avatar and user_name %}
+        <!-- User Info Section for List -->
+        <div class="user-info-section">
+            <img src="{{ user_avatar }}" class="user-avatar-large" alt="avatar">
+            <div class="user-meta-column">
+                <div class="user-name-large">{{ user_name }}</div>
+                {% if user_ip_region %}
+                <div class="user-time-large">{{ user_ip_region }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         {% else %}
         <!-- Detail Header -->
         <div class="header">
@@ -440,14 +454,17 @@
             <!-- List View -->
             {% for section in sections %}
             <div class="list-section">
+                {% if not is_user_list %}
                 {% set en_title = "" %}
                 {% if section.name == "活动" %}{% set en_title = "ACTIVITY" %}
                 {% elif section.name == "资讯" %}{% set en_title = "INFORMATION" %}
                 {% elif section.name == "公告" %}{% set en_title = "NOTICE" %}
+                {% elif section.name == "周边" %}{% set en_title = "MERCHANDISE" %}
                 {% endif %}
                 <div class="section-title" data-en="{{ en_title }}" style="border-left-color: {{ section.color }};">
                     {{ section.name }}
                 </div>
+                {% endif %}
                 <div class="list-grid">
                     {% for item in section.ann_list %}
                     <div class="ann-item">
@@ -460,7 +477,11 @@
                             <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#bdc3c7; font-size:18px;">No Image</div>
                             {% endif %}
                             <div class="ann-id-badge" style="background: {{ section.color }};">
+                                {% if section.name == "周边" %}
+                                ID: {{ item.short_id }}
+                                {% else %}
                                 ID: {{ item.id }}
+                                {% endif %}
                             </div>
                         </div>
                         <div class="ann-info">
