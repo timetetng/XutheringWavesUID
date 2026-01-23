@@ -30,6 +30,11 @@ from ..wutheringwaves_abyss.period import (
     get_tower_period_number,
 )
 from ..utils.resource.RESOURCE_PATH import MAP_CHALLENGE_PATH
+from .tower_wiki_render import (
+    draw_tower_wiki_render,
+    draw_slash_wiki_render,
+    PLAYWRIGHT_AVAILABLE,
+)
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -83,6 +88,14 @@ async def draw_tower_challenge_img(ev: Event, period: Optional[int] = None) -> U
             text = ev.text.strip()
             match = re.search(r"(\d+)", text)
             period = int(match.group(1)) if match else get_tower_period_number()
+
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                res = await draw_tower_wiki_render(period)
+                if res:
+                    return res
+            except Exception:
+                logger.warning("Failed to render tower wiki with playwright, fallback to PIL")
 
         # 加载数据
         json_path = MAP_CHALLENGE_PATH / "tower" / f"{period}.json"
@@ -165,6 +178,14 @@ async def draw_slash_challenge_img(ev: Event, period: Optional[int] = None) -> U
             text = ev.text.strip()
             match = re.search(r"(\d+)", text)
             period = int(match.group(1)) if match else get_slash_period_number()
+
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                res = await draw_slash_wiki_render(period)
+                if res:
+                    return res
+            except Exception:
+                logger.warning("Failed to render slash wiki with playwright, fallback to PIL")
 
         # 加载数据
         json_path = MAP_CHALLENGE_PATH / "slash" / f"{period}.json"

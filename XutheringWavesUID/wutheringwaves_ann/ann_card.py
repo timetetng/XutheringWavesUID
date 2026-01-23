@@ -1,352 +1,306 @@
 import time
-import warnings
 from typing import List, Union
 from datetime import datetime
 
-from PIL import Image, ImageOps, ImageDraw
-
-# 忽略PIL解压缩炸弹警告
-warnings.filterwarnings('ignore', category=Image.DecompressionBombWarning)
-
 from gsuid_core.logger import logger
-from gsuid_core.utils.image.convert import convert_img
-from gsuid_core.utils.image.image_tools import (
-    easy_paste,
-    draw_text_by_line,
-    easy_alpha_composite,
-)
-
-from ..utils.image import add_footer, pic_download_from_url
 from ..utils.waves_api import waves_api
 from ..wutheringwaves_config import PREFIX
-from ..utils.fonts.waves_fonts import (
-    ww_font_18,
-    ww_font_20,
-    ww_font_24,
-    ww_font_26,
+from ..utils.resource.RESOURCE_PATH import waves_templates, ANN_CARD_PATH
+from ..utils.render_utils import (
+    PLAYWRIGHT_AVAILABLE,
+    get_logo_b64,
+    get_footer_b64,
+    get_image_b64_with_cache,
+    render_html,
 )
-from ..utils.resource.RESOURCE_PATH import ANN_CARD_PATH
 
 
-async def ann_list_card() -> bytes:
-    ann_list = await waves_api.get_ann_list()
-    if not ann_list:
-        raise Exception("获取游戏公告失败,请检查接口是否正常")
-
-    # 分组并排序
-    grouped = {}
-    for item in ann_list:
-        t = item.get("eventType")
-        if not t:
-            continue
-        grouped.setdefault(t, []).append(item)
-
-    for data in grouped.values():
-        data.sort(key=lambda x: x.get("publishTime", 0), reverse=True)
-
-    # 配置
-    W, H_ITEM, H_SECTION, H_HEADER, H_FOOTER = 750, 100, 60, 80, 30
-    CONFIGS = {1: ("活动", "#ff6b6b"), 2: ("资讯", "#45b7d1"), 3: ("公告", "#4ecdc4")}
-
-    # 计算高度
-    total_items = sum(len(items) for items in grouped.values())
-    h = H_HEADER + 50 + len(grouped) * (H_SECTION + 30) + total_items * H_ITEM + H_FOOTER
-
-    bg = Image.new("RGBA", (W, h), "#f8f9fa")
-
-    # 头部
-    header = Image.new("RGBA", (W, H_HEADER), "#4a90e2")
-    draw = ImageDraw.Draw(header)
-    title = "库街区公告"
-    tw = draw.textbbox((0, 0), title, ww_font_26)[2]
-    draw.text(((W - tw) // 2, 25), title, "#ffffff", ww_font_26)
-    bg = easy_alpha_composite(bg, header, (0, 0))
-
-    # 提示
-    tip = f"查看详细内容，使用 {PREFIX}公告#ID 查看详情"
-    draw_text_by_line(bg, (30, H_HEADER + 10), tip, ww_font_18, "#8e8e93", W - 60)
-
-    y = H_HEADER + 50
-
-    # 各分类
-    for t in [1, 2, 3]:
-        if t not in grouped:
-            continue
-
-        name, color = CONFIGS[t]
-        data = grouped[t]
-
-        # 分类头
-        section = Image.new("RGBA", (W - 40, H_SECTION), "#ffffff")
-        title_bg = Image.new("RGBA", (W - 40, 40), color)
-        title_draw = ImageDraw.Draw(title_bg)
-        tw = title_draw.textbbox((0, 0), name, ww_font_24)[2]
-        title_draw.text(((W - 40 - tw) // 2, 8), name, "#ffffff", ww_font_24)
-
-        mask = Image.new("L", (W - 40, 40), 0)
-        ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 40, 40], 12, 255)
-        title_bg.putalpha(mask)
-        easy_paste(section, title_bg, (0, 10))
-
-        bg = easy_alpha_composite(bg, section, (20, y))
-        y += H_SECTION
-
-        # 条目
-        for i, item in enumerate(data):
-            card = await create_item_card(W, H_ITEM, item, color, i < len(data) - 1)
-            easy_paste(bg, card, (20, y))
-            y += H_ITEM
-        y += 30
-
-    return await convert_img(add_footer(bg, 600, 20, color="black"))
+from .ann_card_pil import ann_list_card as ann_list_card_pil
+from .ann_card_pil import ann_detail_card as ann_detail_card_pil
+from .ann_card_pil import format_date
 
 
-async def create_item_card(w, h, info, color, sep):
-    """创建卡片"""
-    bg = Image.new("RGBA", (w - 40, h), "#ffffff")
-    draw = ImageDraw.Draw(bg)
-
-    # ID标签
-    id_str = str(info.get("id", ""))
-    tw = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), id_str, ww_font_18)[2]
-    id_w = int(tw + 16)
-    id_bg = Image.new("RGBA", (id_w, 24), color)
-    mask = Image.new("L", (id_w, 24), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, id_w, 24], 12, 255)
-    id_bg.putalpha(mask)
-    ImageDraw.Draw(id_bg).text((id_w / 2, 12), id_str, "#ffffff", ww_font_18, anchor="mm")
-    easy_paste(bg, id_bg, (15, 15))
-
-    # 标题
-    title = info.get("postTitle", "未知公告")
-    title_x = 25 + id_w
-    max_w = w - title_x - 200
-    lines = wrap_text_smart(title, ww_font_20, max_w)
-
-    for i, line in enumerate(lines[:2]):
-        if i == 1 and len(lines) > 2:
-            line = line[:-3] + "..."
-        draw_text_by_line(bg, (title_x, 18 + i * 24), line, ww_font_20, "#1c1c1e", max_w)
-
-    # 日期
-    date = format_date(info.get("publishTime", 0))
-    draw_text_by_line(bg, (title_x, 75), date, ww_font_18, "#8e8e93", 100)
-
-    # 图片
-    await add_preview_image(bg, w, info, color)
-
-    # 边框和分隔线
-    if sep:
-        draw.line([(20, h - 1), (w - 60, h - 1)], "#f0f0f0", 1)
-    draw.rectangle([0, 0, w - 41, h - 1], outline="#e5e5ea", width=1)
-
-    return bg
-
-
-def format_date(ts):
-    """格式化日期"""
-    if ts:
-        try:
-            return datetime.fromtimestamp(ts / 1000).strftime("%m-%d")
-        except Exception:
-            pass
-    return "未知"
-
-
-async def add_preview_image(bg, w, info, color):
-    """添加预览图"""
-    url = info.get("coverUrl", "")
-    if not url:
-        return
+async def ann_list_card(user_id: str = None) -> bytes:
+    if not PLAYWRIGHT_AVAILABLE:
+        return await ann_list_card_pil()
 
     try:
-        img = await pic_download_from_url(ANN_CARD_PATH, url)
-        if img:
-            img = img.resize((100, 70), Image.Resampling.LANCZOS)
-            mask = Image.new("L", (100, 70), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, 100, 70], 8, 255)
-            img.putalpha(mask)
-            easy_paste(bg, img, (w - 160, 15))
-    except Exception as e:
-        logger.debug(f"图片加载失败: {e}")
+        logger.debug("[鸣潮] 正在获取公告列表...")
 
+        user_info = None
+        if user_id:
+            logger.debug(f"[鸣潮] 正在获取用户 {user_id} 的公告列表...")
+            ann_list = []
+            res = await waves_api.get_bbs_list(user_id, pageIndex=1, pageSize=9)
+            if res.success:
+                raw_data = res.model_dump()
+                post_list = raw_data["data"]["postList"]
+                post_list.sort(key=lambda x: x.get("showTime", 0), reverse=True)
+                value = [{**x, "id": int(x["postId"]), "eventType": 4} for x in post_list]
+                ann_list = value
 
-def wrap_text_smart(text, font, max_w):
-    """文字换行"""
-    if not text:
-        return [""]
-
-    draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-    lines, line = [], ""
-
-    for char in text:
-        test = line + char
-        if draw.textbbox((0, 0), test, font)[2] <= max_w:
-            line = test
+                if post_list:
+                    first_post = post_list[0]
+                    user_info = {
+                        "userName": first_post.get("userName", ""),
+                        "headCodeUrl": first_post.get("userHeadUrl", ""),
+                        "ipRegion": first_post.get("ipRegion", "")
+                    }
+            if not ann_list:
+                raise Exception(f"获取用户 {user_id} 的公告失败,请检查用户ID是否正确")
         else:
-            if line:
-                lines.append(line)
-                line = char
+            ann_list = await waves_api.get_ann_list()
+            if not ann_list:
+                raise Exception("获取游戏公告失败,请检查接口是否正常")
+
+        grouped = {}
+        for item in ann_list:
+            t = item.get("eventType")
+            if not t:
+                continue
+            grouped.setdefault(t, []).append(item)
+
+        for data in grouped.values():
+            data.sort(key=lambda x: x.get("publishTime", 0), reverse=True)
+
+        CONFIGS = {
+            1: {"name": "活动", "color": "#F97316"},
+            2: {"name": "资讯", "color": "#3B82F6"},
+            3: {"name": "公告", "color": "#10B981"},
+            4: {"name": "周边", "color": "#8B5CF6"}
+        }
+
+        sections = []
+        for t in [1, 2, 3, 4]:
+            if t not in grouped:
+                continue
+
+            max_items = 9 if user_id else 6
+            section_items = []
+            for item in grouped[t][:max_items]:
+                if not item.get("id") or not item.get("postTitle"):
+                    continue
+
+                cover_url = item.get("coverUrl", "")
+
+                if not cover_url:
+                    cover_images = item.get("coverImages", [])
+                    if cover_images and len(cover_images) > 0:
+                        cover_url = cover_images[0].get("url", "")
+
+                if t == 4 and not cover_url:
+                    img_content = item.get("imgContent", [])
+                    if img_content and len(img_content) > 0:
+                        cover_url = img_content[0].get("url", "")
+
+                if not cover_url:
+                    video_content = item.get("videoContent", [])
+                    if video_content and len(video_content) > 0:
+                        cover_url = video_content[0].get("coverUrl") or video_content[0].get("videoCoverUrl", "")
+
+                if not cover_url and user_info:
+                    cover_url = user_info.get("headCodeUrl", "")
+
+                cover_b64 = await get_image_b64_with_cache(cover_url, ANN_CARD_PATH) if cover_url else ""
+
+                post_id = item.get("postId", "") or str(item.get("id", ""))
+                from .utils.post_id_mapper import get_or_create_short_id
+                short_id = get_or_create_short_id(post_id)
+
+                if t == 4:
+                    date_str = item.get("showTime", "")
+                    if not date_str:
+                        date_str = format_date(item.get("createTimestamp", 0))
+                else:
+                    date_str = format_date(item.get("publishTime", 0))
+
+                section_items.append({
+                    "id": str(item.get("id", "")),
+                    "short_id": short_id,
+                    "postTitle": item.get("postTitle", ""),
+                    "date_str": date_str,
+                    "coverUrl": cover_url,
+                    "coverB64": cover_b64,
+                })
+            
+            if section_items:
+                sections.append({
+                    "name": CONFIGS[t]["name"],
+                    "color": CONFIGS[t]["color"],
+                    "ann_list": section_items
+                })
+
+        if user_id:
+            subtitle = f"用户 {user_id} 的公告列表 | 使用 {PREFIX}公告#ID 查看详情"
+        else:
+            subtitle = f"查看详细内容，使用 {PREFIX}公告#ID 查看详情"
+
+        user_avatar_b64 = ""
+        user_name = ""
+        user_ip_region = ""
+        if user_info:
+            user_name = user_info.get("userName", "")
+            user_ip_region = user_info.get("ipRegion", "")
+            head_url = user_info.get("headCodeUrl", "")
+            if head_url:
+                user_avatar_b64 = await get_image_b64_with_cache(head_url, ANN_CARD_PATH)
+
+        is_user_list = bool(user_id) and user_id != "10011001"
+
+        context = {
+            "title": "鸣潮公告",
+            "subtitle": subtitle,
+            "is_list": True,
+            "is_user_list": is_user_list,
+            "sections": sections,
+            "logo_b64": get_logo_b64(),
+            "footer_b64": get_footer_b64(),
+            "user_avatar": user_avatar_b64,
+            "user_name": user_name,
+            "user_ip_region": user_ip_region
+        }
+
+        logger.debug(f"[鸣潮] 准备通过HTML渲染列表, sections: {len(sections)}")
+        img_bytes = await render_html(waves_templates, "ann_card.html", context)
+        if img_bytes:
+            return img_bytes
+        else:
+            logger.warning("[鸣潮] Playwright 渲染返回空, 正在回退到 PIL 渲染")
+            return await ann_list_card_pil()
+
+    except Exception as e:
+        logger.exception(f"[鸣潮] HTML渲染失败: {e}")
+        return await ann_list_card_pil()
+
+
+async def ann_detail_card(ann_id: Union[int, str], is_check_time=False) -> Union[bytes, str, List[bytes]]:
+    if not PLAYWRIGHT_AVAILABLE:
+        return await ann_detail_card_pil(ann_id, is_check_time)
+
+    try:
+        logger.debug(f"[鸣潮] 正在获取公告详情: {ann_id}")
+        ann_list = await waves_api.get_ann_list(True)
+        if not ann_list:
+            raise Exception("获取游戏公告失败,请检查接口是否正常")
+
+        if isinstance(ann_id, int):
+            content = [x for x in ann_list if x["id"] == ann_id]
+        else:
+            content = [x for x in ann_list if str(x.get("postId", "")) == str(ann_id) or str(x.get("id", "")) == str(ann_id)]
+
+        if content:
+            postId = content[0]["postId"]
+        else:
+            postId = str(ann_id)
+
+        res = await waves_api.get_ann_detail(postId)
+        if not res:
+            return "未找到该公告"
+
+        if is_check_time:
+            post_time = format_post_time(res["postTime"])
+            now_time = int(time.time())
+            if post_time < now_time - 86400:
+                return "该公告已过期"
+
+        post_content = res["postContent"]
+        
+        content_type2_first = [x for x in post_content if x["contentType"] == 2]
+        if not content_type2_first and "coverImages" in res:
+            _node = res["coverImages"][0]
+            _node["contentType"] = 2
+            post_content.insert(0, _node)
+
+        if not post_content:
+            return "未找到该公告"
+
+        long_image_urls = []
+        for item in post_content:
+            if item.get("contentType") == 2 and "url" in item:
+                img_width = item.get("imgWidth", 0)
+                img_height = item.get("imgHeight", 0)
+                if img_width > 0 and img_height / img_width > 5:
+                    long_image_urls.append(item["url"])
+
+        result_images = []
+        if long_image_urls:
+            from ..utils.image import pic_download_from_url
+            from gsuid_core.utils.image.convert import convert_img
+
+            logger.info(f"[鸣潮] 检测到 {len(long_image_urls)} 张超长图片，将单独发送")
+            for img_url in long_image_urls:
+                try:
+                    img = await pic_download_from_url(ANN_CARD_PATH, img_url)
+                    img_bytes = await convert_img(img)
+                    result_images.append(img_bytes)
+                except Exception as e:
+                    logger.warning(f"[鸣潮] 下载超长图片失败: {img_url}, {e}")
+
+            post_content = [
+                item for item in post_content
+                if not (item.get("contentType") == 2 and item.get("url") in long_image_urls)
+            ]
+            logger.info(f"[鸣潮] 过滤后剩余 {len(post_content)} 个内容项")
+
+        processed_content = []
+        for item in post_content:
+            ctype = item.get("contentType")
+            if ctype == 1:
+                processed_content.append({
+                    "contentType": 1,
+                    "content": item.get("content", "")
+                })
+            elif ctype == 2 and "url" in item:
+                img_url = item["url"]
+                img_b64 = await get_image_b64_with_cache(img_url, ANN_CARD_PATH)
+                processed_content.append({
+                    "contentType": 2,
+                    "url": img_url,
+                    "urlB64": img_b64,
+                })
             else:
-                lines.append(char)
-                line = ""
+                cover_url = item.get("coverUrl") or item.get("videoCoverUrl")
+                if cover_url:
+                    cover_b64 = await get_image_b64_with_cache(cover_url, ANN_CARD_PATH)
+                    processed_content.append({
+                        "contentType": "video",
+                        "coverUrl": cover_url,
+                        "coverB64": cover_b64,
+                    })
 
-    if line:
-        lines.append(line)
-    return lines or [""]
+        user_name = res.get("userName", "鸣潮")
+        head_code_url = res.get("headCodeUrl", "")
+        user_avatar = ""
+        if head_code_url:
+            user_avatar = await get_image_b64_with_cache(head_code_url, ANN_CARD_PATH)
 
+        context = {
+            "title": res.get("postTitle", "公告详情"),
+            "subtitle": f"发布时间: {res.get('postTime', '未知')}",
+            "post_time": res.get('postTime', '未知'),
+            "user_name": user_name,
+            "user_avatar": user_avatar,
+            "is_list": False,
+            "content": processed_content,
+            "logo_b64": get_logo_b64(),
+            "footer_b64": get_footer_b64()
+        }
 
-async def ann_batch_card(post_content: List, drow_height: float) -> bytes:
-    im = Image.new("RGB", (1080, drow_height), "#f9f6f2")  # type: ignore
-    draw = ImageDraw.Draw(im)
-    x, y = 0, 0
+        logger.debug(f"[鸣潮] 准备通过HTML渲染详情, content items: {len(processed_content)}")
+        img_bytes = await render_html(waves_templates, "ann_card.html", context)
+        if img_bytes:
+            if result_images:
+                result_images = [img_bytes] + result_images
+                logger.info(f"[鸣潮] 返回 {len(result_images)} 张图片（包含 {len(long_image_urls)} 张超长图和1张公告卡片）")
+                return result_images
+            return img_bytes
+        else:
+            logger.warning("[鸣潮] Playwright 渲染返回空, 正在回退到 PIL 渲染")
+            return await ann_detail_card_pil(ann_id, is_check_time)
 
-    for temp in post_content:
-        if temp["contentType"] == 1:
-            content = temp["content"]
-            drow_duanluo, _, drow_line_height, _ = split_text(content)
-            for duanluo, line_count in drow_duanluo:
-                draw.text((x, y), duanluo, fill=(0, 0, 0), font=ww_font_26)
-                y += drow_line_height * line_count + 30
-        elif temp["contentType"] == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg", "webp")):
-            img = await pic_download_from_url(ANN_CARD_PATH, temp["url"])
-            img_x = 0
-            if img.width > im.width:
-                ratio = im.width / img.width
-                img = img.resize((int(img.width * ratio), int(img.height * ratio)))
-            else:
-                img_x = (im.width - img.width) // 2
-            easy_paste(im, img, (img_x, y))
-            y += img.size[1] + 40
-
-    if hasattr(ww_font_26, "getbbox"):
-        bbox = ww_font_26.getbbox("囗")
-        padding = (
-            int(bbox[2] - bbox[0]),
-            int(bbox[3] - bbox[1]),
-            int(bbox[2] - bbox[0]),
-            int(bbox[3] - bbox[1]),
-        )
-    else:
-        w, h = ww_font_26.getsize("囗")  # type: ignore
-        padding = (w, h, w, h)
-    return await convert_img(ImageOps.expand(im, padding, "#f9f6f2"))
-
-
-async def ann_detail_card(ann_id: int, is_check_time=False) -> Union[bytes, str, List[bytes]]:
-    ann_list = await waves_api.get_ann_list(True)
-    if not ann_list:
-        raise Exception("获取游戏公告失败,请检查接口是否正常")
-    content = [x for x in ann_list if x["id"] == ann_id]
-
-    if content:
-        postId = content[0]["postId"]
-    else:
-        postId = str(ann_id)
-        logger.info(f"公告ID {ann_id} 不在当前列表中，尝试直接作为postId查询")
-
-    res = await waves_api.get_ann_detail(postId)
-    if not res:
-        return "未找到该公告"
-
-    if is_check_time:
-        post_time = format_post_time(res["postTime"])
-        now_time = int(time.time())
-        logger.debug(f"公告id: {ann_id}, post_time: {post_time}, now_time: {now_time}, delta: {now_time - post_time}")
-        if post_time < now_time - 86400:
-            return "该公告已过期"
-
-    post_content = res["postContent"]
-    content_type2_first = [x for x in post_content if x["contentType"] == 2]
-    if not content_type2_first and "coverImages" in res:
-        _node = res["coverImages"][0]
-        _node["contentType"] = 2
-        post_content.insert(0, _node)
-
-    if not post_content:
-        return "未找到该公告"
-
-    drow_height = 0
-    index_start = 0
-    index_end = 0
-    imgs = []
-    for index, temp in enumerate(post_content):
-        content_type = temp["contentType"]
-        if content_type == 1:
-            # 文案
-            content = temp["content"]
-            (
-                x_drow_duanluo,
-                x_drow_note_height,
-                x_drow_line_height,
-                x_drow_height,
-            ) = split_text(content)
-            drow_height += x_drow_height + 30
-        elif content_type == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg", "webp")):
-            # 图片
-            _size = (temp["imgWidth"], temp["imgHeight"])
-            img = await pic_download_from_url(ANN_CARD_PATH, temp["url"])
-            img_height = img.size[1]
-            if img.width > 1080:
-                ratio = 1080 / img.width
-                img_height = int(img.height * ratio)
-            drow_height += img_height + 40
-
-        index_end = index + 1
-        if drow_height > 5000:
-            img = await ann_batch_card(post_content[index_start:index_end], drow_height)
-            index_start = index_end
-            index_end = index + 1
-            drow_height = 0
-            imgs.append(img)
-    else:
-        if drow_height and index_end > index_start:
-            img = await ann_batch_card(post_content[index_start:index_end], drow_height)
-            imgs.append(img)
-
-    return imgs
-
-
-def split_text(content: str):
-    # 按规定宽度分组
-    max_line_height, total_lines = 0, 0
-    allText = []
-    for text in content.split("\n"):
-        duanluo, line_height, line_count = get_duanluo(text)
-        max_line_height = max(line_height, max_line_height)
-        total_lines += line_count
-        allText.append((duanluo, line_count))
-    line_height = max_line_height
-    total_height = total_lines * line_height
-    drow_height = total_lines * line_height
-    return allText, total_height, line_height, drow_height
-
-
-def get_duanluo(text: str):
-    txt = Image.new("RGBA", (600, 800), (255, 255, 255, 0))
-    draw = ImageDraw.Draw(txt)
-    # 所有文字的段落
-    duanluo = ""
-    max_width = 1050
-    # 宽度总和
-    sum_width = 0
-    # 几行
-    line_count = 1
-    # 行高
-    line_height = 0
-    for char in text:
-        left, top, right, bottom = draw.textbbox((0, 0), char, ww_font_26)
-        width, height = (right - left, bottom - top)
-        sum_width += width
-        if sum_width > max_width:  # 超过预设宽度就修改段落 以及当前行数
-            line_count += 1
-            sum_width = 0
-            duanluo += "\n"
-        duanluo += char
-        line_height = max(height, line_height)
-    if not duanluo.endswith("\n"):
-        duanluo += "\n"
-    return duanluo, line_height, line_count
+    except Exception as e:
+        logger.exception(f"[鸣潮] HTML渲染失败: {e}")
+        return await ann_detail_card_pil(ann_id, is_check_time)
 
 
 def format_post_time(post_time: str) -> int:

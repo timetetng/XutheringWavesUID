@@ -43,13 +43,13 @@ def load_alias_data():
         with open(CHAR_ALIAS, "r", encoding="UTF-8") as f:
             char_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
 
-    if WEAPON_ALIAS.exists():
-        with open(WEAPON_ALIAS, "r", encoding="UTF-8") as f:
-            weapon_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
-
     if SONATA_ALIAS.exists():
         with open(SONATA_ALIAS, "r", encoding="UTF-8") as f:
             sonata_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
+
+    if WEAPON_ALIAS.exists():
+        with open(WEAPON_ALIAS, "r", encoding="UTF-8") as f:
+            weapon_alias_data = msgjson.decode(f.read(), type=Dict[str, List[str]])
 
     if ECHO_ALIAS.exists():
         with open(ECHO_ALIAS, "r", encoding="UTF-8") as f:
@@ -64,6 +64,7 @@ def load_alias_data():
             custom_char_alias_data = {}
 
         char_alias_data = add_dictionaries(char_alias_data, custom_char_alias_data)
+        char_alias_data = dict(sorted(char_alias_data.items(), key=lambda item: len(item[0])))
 
     if CUSTOM_SONATA_ALIAS_PATH.exists():
         try:
@@ -74,6 +75,7 @@ def load_alias_data():
             custom_sonata_alias_data = {}
 
         sonata_alias_data = add_dictionaries(sonata_alias_data, custom_sonata_alias_data)
+        sonata_alias_data = dict(sorted(sonata_alias_data.items(), key=lambda item: len(item[0])))
 
     if CUSTOM_WEAPON_ALIAS_PATH.exists():
         try:
@@ -84,6 +86,7 @@ def load_alias_data():
             custom_weapon_alias_data = {}
 
         weapon_alias_data = add_dictionaries(weapon_alias_data, custom_weapon_alias_data)
+        weapon_alias_data = dict(sorted(weapon_alias_data.items(), key=lambda item: len(item[0])))
 
     if CUSTOM_ECHO_ALIAS_PATH.exists():
         try:
@@ -94,6 +97,7 @@ def load_alias_data():
             custom_echo_alias_data = {}
 
         echo_alias_data = add_dictionaries(echo_alias_data, custom_echo_alias_data)
+        echo_alias_data = dict(sorted(echo_alias_data.items(), key=lambda item: len(item[0])))
 
     with open(CUSTOM_CHAR_ALIAS_PATH, "w", encoding="UTF-8") as f:
         f.write(json.dumps(char_alias_data, indent=2, ensure_ascii=False))

@@ -22,7 +22,6 @@ def _import_playwright():
         return None
 
 
-# 尝试导入 playwright
 async_playwright = _import_playwright()
 PLAYWRIGHT_AVAILABLE = async_playwright is not None
 
@@ -48,7 +47,7 @@ async def render_html(waves_templates, template_name: str, context: dict) -> Opt
             async with async_playwright() as p:
                 logger.debug("[鸣潮] 启动浏览器...")
                 browser = await p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
-                page = await browser.new_page(viewport={"width": 800, "height": 1000})
+                page = await browser.new_page(viewport={"width": 1200, "height": 1000})
 
                 logger.debug("[鸣潮] 加载HTML内容...")
                 await page.set_content(html_content)
@@ -59,9 +58,28 @@ async def render_html(waves_templates, template_name: str, context: dict) -> Opt
                 except Exception as e:
                     logger.debug(f"[鸣潮] 等待网络空闲超时 (可能部分资源加载缓慢): {e}")
 
-                logger.debug("[鸣潮] 正在截图...")
-                # Screenshot only the container element to avoid extra whitespace
+                logger.debug("[鸣潮] 正在计算容器尺寸...")
                 container = page.locator(".container")
+                await page.wait_for_selector(".container", timeout=2000)
+                size = await container.evaluate(
+                    """(el) => {
+                        const rect = el.getBoundingClientRect();
+                        const width = Math.ceil(Math.max(rect.width, el.scrollWidth));
+                        const height = Math.ceil(Math.max(rect.height, el.scrollHeight));
+                        return { width, height };
+                    }"""
+                )
+
+                if size and size.get("width") and size.get("height"):
+                    await page.set_viewport_size(
+                        {
+                            "width": max(1, int(size["width"])),
+                            "height": max(1, int(size["height"])),
+                        }
+                    )
+                    await page.wait_for_timeout(50)
+
+                logger.debug("[鸣潮] 正在截图...")
                 screenshot = await container.screenshot(type='jpeg', quality=90)
 
                 await browser.close()

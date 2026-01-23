@@ -18,7 +18,8 @@ from ..utils.image import (
     GREY,
     GREEN,
     YELLOW,
-    add_footer,
+    add_footer, 
+    pil_to_b64, 
     get_event_avatar,
     get_random_waves_bg,
     get_random_waves_role_pile,
@@ -40,6 +41,11 @@ from ..utils.fonts.waves_fonts import (
 )
 from ..utils.resource.constant import SPECIAL_CHAR
 from ..wutheringwaves_config.wutheringwaves_config import ShowConfig
+import io
+import base64
+from ..utils.render_utils import render_html
+from ..utils.resource.RESOURCE_PATH import waves_templates
+
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 YES = Image.open(TEXT_PATH / "yes.png")
@@ -50,6 +56,7 @@ bar_down = Image.open(TEXT_PATH / "bar_down.png").convert("RGBA")
 
 based_w = 1150
 based_h = 850
+URGENT_COLOR = "#ff4d4f"
 
 
 async def seconds2hours(seconds: int) -> str:
@@ -148,8 +155,11 @@ async def _draw_all_stamina_img(ev: Event, img: Image.Image, valid: Dict, index:
 
 
 async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
+    """准备数据并调用绘制函数"""
     daily_info: DailyData = valid["daily_info"]
     account_info: AccountBaseInfo = valid["account_info"]
+
+    # 确定签到状态
     if daily_info.hasSignIn:
         sign_in_icon = YES
         sing_in_text = "签到已完成！"
@@ -157,6 +167,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         sign_in_icon = NO
         sing_in_text = "今日未签到！"
 
+    # 确定活跃度状态
     if daily_info.livenessData.total != 0 and daily_info.livenessData.cur == daily_info.livenessData.total:
         active_icon = YES
         active_text = "活跃度已满！"
@@ -164,13 +175,14 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         active_icon = NO
         active_text = "活跃度未满！"
 
+    # 加载基础图片资源
     img = Image.open(TEXT_PATH / "bg.jpg").convert("RGBA")
     info = Image.open(TEXT_PATH / "main_bar.png").convert("RGBA")
     base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")
     avatar_ring = Image.open(TEXT_PATH / "avatar_ring.png")
 
     # 头像
-    avatar = await draw_pic_with_ring(ev)
+    avatar = await get_event_avatar(ev)
 
     # 随机获得pile
     user = await WavesUser.get_user_by_attr(ev.user_id, ev.bot_id, "uid", daily_info.roleId, game_id=WAVES_GAME_ID)
@@ -221,6 +233,270 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
         pile = await get_random_waves_role_pile(pile_id, force_not_use_custom=force_not_use_custom)
         has_bg = False
 
+    # 尝试使用HTML渲染
+    try:
+        html_res = await _render_stamina_card(
+            ev=ev,
+            pile=pile,
+            has_bg=has_bg,
+            daily_info=daily_info,
+            account_info=account_info,
+            sign_in_status=daily_info.hasSignIn,
+            sign_in_text=sing_in_text,
+            active_status=(
+                daily_info.livenessData.total != 0
+                and daily_info.livenessData.cur == daily_info.livenessData.total
+            ),
+            active_text=active_text,
+            avatar=avatar,
+        )
+        if html_res:
+            return html_res
+    except Exception:
+        logger.exception("[鸣潮][每日信息]HTML渲染失败, 回退到PIL绘制")
+
+    # 调用实际的绘制函数
+    return await _render_stamina_card_pil(
+        img=img,
+        info=info,
+        base_info_bg=base_info_bg,
+        avatar_ring=avatar_ring,
+        avatar=await draw_pic_with_ring(ev),
+        pile=pile,
+        has_bg=has_bg,
+        daily_info=daily_info,
+        account_info=account_info,
+        sign_in_icon=sign_in_icon,
+        sing_in_text=sing_in_text,
+        active_icon=active_icon,
+        active_text=active_text,
+    )
+
+
+async def _render_stamina_card(
+    ev: Event,
+    pile: Image.Image,
+    has_bg: bool,
+    daily_info: DailyData,
+    account_info: AccountBaseInfo,
+    sign_in_status: bool,
+    sign_in_text: str,
+    active_status: bool,
+    active_text: str,
+    avatar: Image.Image,
+) -> Image.Image:
+    # 准备上下文数据
+    
+    # 颜色定义
+    color_red = "#BA372A"
+    color_yellow = "#FFCB3B"
+    color_green = "#00FF00"
+    urgent_color = URGENT_COLOR
+    
+    # 加载本地资源并转Base64
+    def load_b64(filename):
+        try:
+            p = TEXT_PATH / filename
+            if p.exists():
+                return pil_to_b64(Image.open(p))
+        except Exception:
+            return ""
+        return ""
+
+    # 压缩图片并转Base64
+    def compress_and_b64(img: Image.Image) -> str:
+        try:
+            # Resize if too large
+            max_size = 1500
+            if img.width > max_size or img.height > max_size:
+                img.thumbnail((max_size, max_size), Image.LANCZOS)
+            
+            bio = io.BytesIO()
+            # If has_bg, likely opaque, can use JPEG for better compression if needed, 
+            # but PNG is safer for compatibility/transparency if it happens to be RGBA.
+            # Using PNG for safety but resized.
+            img.save(bio, format="PNG")
+            return "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode()
+        except Exception:
+            return pil_to_b64(img)
+
+    yes_icon_b64 = load_b64("yes.png")
+    no_icon_b64 = load_b64("no.png")
+    
+    stamina_icon_b64 = load_b64("结晶波片.png")
+    store_icon_b64 = load_b64("结晶单质.png")
+    liveness_icon_b64 = load_b64("活跃度.png")
+    bg_url_b64 = load_b64("bg.jpg")
+    
+    # 体力
+    stamina_cur = daily_info.energyData.cur
+    stamina_total = daily_info.energyData.total
+    stamina_percent = min(100, (stamina_cur / stamina_total * 100)) if stamina_total else 0
+    stamina_color = color_red if stamina_percent > 80 else color_yellow
+    
+    # 体力恢复时间
+    curr_time = int(time.time())
+    refreshTimeStamp = daily_info.energyData.refreshTimeStamp if daily_info.energyData.refreshTimeStamp else curr_time
+    
+    if refreshTimeStamp != curr_time:
+        date_from_timestamp = datetime.fromtimestamp(refreshTimeStamp)
+        now = datetime.now()
+        today = now.date()
+        tomorrow = today + timedelta(days=1)
+        
+        if date_from_timestamp.date() == today:
+            recover_text = "今天 " + datetime.fromtimestamp(refreshTimeStamp).strftime("%H:%M:%S")
+        elif date_from_timestamp.date() == tomorrow:
+            recover_text = "明天 " + datetime.fromtimestamp(refreshTimeStamp).strftime("%H:%M:%S")
+        else:
+             recover_text = datetime.fromtimestamp(refreshTimeStamp).strftime("%m.%d %H:%M:%S")
+    else:
+        recover_text = "漂泊者该上潮了"
+        
+    # 结晶
+    store_cur = account_info.storeEnergy
+    store_total = account_info.storeEnergyLimit if account_info.storeEnergyLimit else 480
+    store_percent = min(100, (store_cur / store_total * 100)) if store_total else 0
+    store_color = color_red if store_percent > 80 else color_yellow
+
+    # 活跃度
+    live_cur = daily_info.livenessData.cur
+    live_total = daily_info.livenessData.total
+    live_percent = min(100, (live_cur / live_total * 100)) if live_total else 0
+    
+    # 战歌重奏 (Weekly Boss)
+    boss_limit = account_info.weeklyInstCountLimit if account_info.weeklyInstCountLimit else 3
+    boss_used = account_info.weeklyInstCount if account_info.weeklyInstCount else 0
+    boss_left = max(0, boss_limit - boss_used)
+    boss_color = urgent_color if boss_used > 0 else color_green 
+    
+    # Rogue
+    rogue_cur = account_info.rougeScore if account_info.rougeScore else 0
+    rogue_total = account_info.rougeScoreLimit if account_info.rougeScoreLimit else 0
+    rogue_color = color_red if rogue_cur != rogue_total else color_green
+    
+    # Tower
+    tower_cur = daily_info.towerData.cur if daily_info.towerData else 0
+    tower_total = daily_info.towerData.total if daily_info.towerData else 0
+    tower_refresh = daily_info.towerData.refreshTimeStamp if daily_info.towerData else 0
+    tower_urgent = False
+    if tower_refresh > curr_time:
+         remain_days = (datetime.fromtimestamp(tower_refresh) - datetime.now()).days
+         tower_time_text = f"余 {remain_days} 天"
+         if tower_total and tower_cur < tower_total and remain_days < 7:
+             tower_urgent = True
+    else:
+         tower_time_text = "已结束"
+
+    # Slash Tower (冥歌海墟)
+    slash_cur = daily_info.slashTowerData.cur if daily_info.slashTowerData else 0
+    slash_total = daily_info.slashTowerData.total if daily_info.slashTowerData else 0
+    slash_refresh = daily_info.slashTowerData.refreshTimeStamp if daily_info.slashTowerData else 0
+    slash_urgent = False
+    if slash_refresh > curr_time:
+         remain_days = (datetime.fromtimestamp(slash_refresh) - datetime.now()).days
+         slash_time_text = f"余 {remain_days} 天"
+         if slash_total and slash_cur < slash_total and remain_days < 7:
+             slash_urgent = True
+    else:
+         slash_time_text = "已结束"
+
+    # 我去，我真变态！
+    context = {
+        "user_name": daily_info.roleName,
+        "role_id": daily_info.roleId,
+        "uid": daily_info.roleId,
+        "avatar_url": pil_to_b64(avatar),
+        "pile_url": compress_and_b64(pile),
+        "has_bg": has_bg,
+        
+        # Icons
+        "yes_icon_url": yes_icon_b64,
+        "no_icon_url": no_icon_b64,
+        "stamina_icon_url": stamina_icon_b64,
+        "store_icon_url": store_icon_b64,
+        "liveness_icon_url": liveness_icon_b64,
+        "bg_url": bg_url_b64,
+
+        # Data
+        "stamina": {
+            "cur": stamina_cur,
+            "total": stamina_total,
+            "percent": stamina_percent,
+            "color": stamina_color,
+            "recovery_text": recover_text
+        },
+        "store_energy": {
+            "cur": store_cur,
+            "total": store_total,
+            "percent": store_percent,
+            "color": store_color
+        },
+        "liveness": {
+            "cur": live_cur,
+            "total": live_total,
+            "percent": live_percent,
+            "color": color_yellow
+        },
+        "battle_pass": {
+            "level": daily_info.battlePassData[0].cur if daily_info.battlePassData else 0,
+        },
+        "weekly_boss": {
+            "left": boss_left,
+            "total": boss_limit,
+            "color": boss_color
+        },
+        "weekly_rogue": {
+            "cur": rogue_cur,
+            "total": rogue_total,
+            "color": rogue_color
+        },
+        "tower": {
+            "cur": tower_cur,
+            "total": tower_total,
+            "time_text": tower_time_text,
+            "urgent": tower_urgent
+        },
+        "slash_tower": {
+            "cur": slash_cur,
+            "total": slash_total,
+            "time_text": slash_time_text,
+            "urgent": slash_urgent
+        },
+        "sign_in": {
+            "status": sign_in_status,
+            "text": sign_in_text
+        },
+        "active_reward": {
+            "status": active_status,
+            "text": active_text
+        },
+        "urgent_color": URGENT_COLOR,
+    }
+    
+    img_bytes = await render_html(waves_templates, "stamina_card.html", context)
+    if img_bytes:
+        return Image.open(io.BytesIO(img_bytes))
+    return None
+
+
+async def _render_stamina_card_pil(
+    img: Image.Image,
+    info: Image.Image,
+    base_info_bg: Image.Image,
+    avatar_ring: Image.Image,
+    avatar: Image.Image,
+    pile: Image.Image,
+    has_bg: bool,
+    daily_info: DailyData,
+    account_info: AccountBaseInfo,
+    sign_in_icon: Image.Image,
+    sing_in_text: str,
+    active_icon: Image.Image,
+    active_text: str,
+) -> Image.Image:
+    """实际的绘制逻辑"""
+    # 处理背景图片
     if ShowConfig.get_config("MrUseBG") and has_bg:
         bg_w, bg_h = pile.size
         target_w, target_h = 1150, 850
@@ -244,7 +520,7 @@ async def _draw_stamina_img(ev: Event, valid: Dict) -> Image.Image:
     title_bar = Image.open(TEXT_PATH / "title_bar.png")
     title_bar_draw = ImageDraw.Draw(title_bar)
     title_bar_draw.text((480, 125), "战歌重奏", GREY, waves_font_26, "mm")
-    color = RED if account_info.weeklyInstCount != 0 else GREEN
+    color = URGENT_COLOR if account_info.weeklyInstCount != 0 else GREEN
     if account_info.weeklyInstCountLimit is not None and account_info.weeklyInstCount is not None:
         title_bar_draw.text(
             (480, 78),

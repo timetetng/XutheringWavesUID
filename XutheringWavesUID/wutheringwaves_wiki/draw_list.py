@@ -20,6 +20,7 @@ from ..wutheringwaves_config import PREFIX
 from ..utils.ascension.sonata import sonata_id_data
 from ..utils.ascension.weapon import weapon_id_data
 from ..utils.fonts.waves_fonts import waves_font_16, waves_font_18, waves_font_24
+from .other_wiki_render import draw_weapon_list_render, draw_sonata_list_render
 
 TEXT_PATH = Path(__file__).parent.parent / "wutheringwaves_develop" / "texture2d"
 star_1 = Image.open(TEXT_PATH / "star-1.png")
@@ -37,11 +38,27 @@ star_img_map = {
 
 
 async def draw_weapon_list(weapon_type: str):
+    """武器列表 - 优先使用HTML渲染，失败则回退到PIL"""
+    # 尝试HTML渲染
+    try:
+        result = await draw_weapon_list_render(weapon_type)
+        if result:
+            return result
+    except Exception as e:
+        logger.warning(f"[鸣潮] 武器列表HTML渲染失败，回退到PIL: {e}")
+
+    # 回退到PIL绘制
+    return await _draw_weapon_list_pil(weapon_type)
+
+
+async def _draw_weapon_list_pil(weapon_type: str):
+    """武器列表 - PIL绘制"""
     # 确保数据已加载
     if not weapon_id_data:
         return "[鸣潮][武器列表]暂无数据"
 
-    weapon_type = weapon_type.replace("臂甲", "臂铠").replace("讯刀", "迅刀")
+    if weapon_type:
+        weapon_type = weapon_type.replace("臂甲", "臂铠").replace("讯刀", "迅刀")
 
     # 创建反向映射（中文类型 → 数字类型）
     reverse_type_map = {v: k for k, v in WEAPON_TYPE_ID_MAP.items()}
@@ -181,9 +198,24 @@ async def draw_weapon_list(weapon_type: str):
 
 
 async def draw_sonata_list(version: str = ""):
+    """声骸套装列表 - 优先使用HTML渲染，失败则回退到PIL"""
+    # 尝试HTML渲染
+    try:
+        result = await draw_sonata_list_render(version)
+        if result:
+            return result
+    except Exception as e:
+        logger.warning(f"[鸣潮] 套装列表HTML渲染失败，回退到PIL: {e}")
+
+    # 回退到PIL绘制
+    return await _draw_sonata_list_pil(version)
+
+
+async def _draw_sonata_list_pil(version: str = ""):
+    """声骸套装列表 - PIL绘制"""
     if not sonata_id_data:
         return "[鸣潮][套装列表]暂无数据"
-    
+
     if version:
         version = version.split(".")[0] + ".0"
 

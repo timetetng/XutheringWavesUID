@@ -4,6 +4,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
@@ -28,6 +29,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_origin,
 )
 from ..utils.resource.download_file import get_material_img
+from .other_wiki_render import draw_weapon_wiki_render
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -181,6 +183,21 @@ def get_weapon_icon_bg(star: int = 3) -> Image.Image:
 
 
 async def draw_wiki_weapon(weapon_name: str):
+    """武器图鉴 - 优先使用HTML渲染，失败则回退到PIL"""
+    # 尝试HTML渲染
+    try:
+        result = await draw_weapon_wiki_render(weapon_name)
+        if result:
+            return result
+    except Exception as e:
+        logger.warning(f"[鸣潮] 武器图鉴HTML渲染失败，回退到PIL: {e}")
+
+    # 回退到PIL绘制
+    return await _draw_wiki_weapon_pil(weapon_name)
+
+
+async def _draw_wiki_weapon_pil(weapon_name: str):
+    """武器图鉴 - PIL绘制"""
     weapon_name = alias_to_weapon_name(weapon_name)
     weapon_id = get_weapon_id(weapon_name)
     if weapon_id is None:

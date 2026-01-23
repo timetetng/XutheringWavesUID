@@ -1,5 +1,6 @@
 import os
 import random
+import base64
 from io import BytesIO
 from typing import Tuple, Union, Literal, Optional
 from pathlib import Path
@@ -80,6 +81,28 @@ WAVES_SHUXING_MAP = {
     "气动": WAVES_SIERRA,
     "衍射": WAVES_CELESTIAL,
     "湮灭": WAVES_SINKING,
+}
+
+
+def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
+    """将RGB元组转换为十六进制颜色字符串"""
+    return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
+
+
+def pil_to_b64(img: Image.Image) -> str:
+    """将PIL图像转换为base64编码的data URL"""
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode('utf-8')
+
+
+ELEMENT_COLOR_MAP = {
+    "冷凝": rgb_to_hex(WAVES_FREEZING),
+    "热熔": rgb_to_hex(WAVES_MOLTEN),
+    "导电": rgb_to_hex(WAVES_VOID),
+    "气动": rgb_to_hex(WAVES_SIERRA),
+    "衍射": rgb_to_hex(WAVES_CELESTIAL),
+    "湮灭": rgb_to_hex(WAVES_SINKING),
 }
 
 CHAIN_COLOR = {
@@ -252,7 +275,7 @@ async def get_square_weapon(resource_id: Union[int, str]) -> Image.Image:
     if os.path.exists(path):
         return Image.open(path).convert("RGBA")
     else:
-        return Image.open(WEAPON_PATH / "weapon_21010063.png").convert("RGBA")
+        return Image.open(WEAPON_PATH / "weapon_21020012.png").convert("RGBA")
 
 
 async def get_attribute(name: str = "", is_simple: bool = False) -> Image.Image:

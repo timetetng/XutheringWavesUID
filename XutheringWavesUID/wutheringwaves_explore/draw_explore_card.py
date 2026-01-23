@@ -1,17 +1,27 @@
-import math
-from io import BytesIO
 from pathlib import Path
+from typing import List, Tuple, Dict
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from gsuid_core.models import Event
-from gsuid_core.utils.image.utils import sget
-from gsuid_core.utils.image.convert import convert_img
+from gsuid_core.logger import logger
+from gsuid_core.data_store import get_res_path
 
-from ..utils import hint
+from ..utils.waves_api import waves_api
+from ..utils.error_reply import WAVES_CODE_102
+from ..utils.api.model import (
+    ExploreList,
+    AccountBaseInfo,
+)
+from ..utils.render_utils import (
+    PLAYWRIGHT_AVAILABLE,
+    render_html,
+    get_image_b64_with_cache,
+    get_footer_b64,
+)
+from ..utils.resource.RESOURCE_PATH import waves_templates
+from ..utils.imagetool import draw_pic_with_ring
 from ..utils.image import (
-    GOLD,
-    GREY,
     YELLOW,
     WAVES_VOID,
     WAVES_MOLTEN,
@@ -20,37 +30,13 @@ from ..utils.image import (
     WAVES_SINKING,
     WAVES_FREEZING,
     WAVES_LINGERING,
-    add_footer,
-    change_color,
-    get_custom_waves_bg,
-)
-from ..utils.api.model import (
-    AreaInfo,
-    ExploreArea,
-    ExploreItem,
-    ExploreList,
-    AccountBaseInfo,
-)
-from ..utils.imagetool import draw_pic_with_ring
-from ..utils.waves_api import waves_api
-from ..utils.error_reply import WAVES_CODE_102
-from ..utils.fonts.waves_fonts import (
-    waves_font_24,
-    waves_font_25,
-    waves_font_26,
-    waves_font_30,
-    waves_font_36,
-    waves_font_42,
+    pil_to_b64,
+    rgb_to_hex,
 )
 
-TEXT_PATH = Path(__file__).parent / "texture2d"
+from .draw_explore_card_pil import draw_explore_img as draw_explore_img_pil
 
-tag_yes = Image.open(TEXT_PATH / "tag_yes.png")
-tag_yes_draw = ImageDraw.Draw(tag_yes)
-tag_yes_draw.text((85, 30), "已完成", "white", waves_font_36, "mm")
-tag_no = Image.open(TEXT_PATH / "tag_no.png")
-tag_no_draw = ImageDraw.Draw(tag_no)
-tag_no_draw.text((85, 30), "未完成", "white", waves_font_36, "mm")
+EXPLORE_IMAGE_PATH = get_res_path("XutheringWavesUID") / "other" / "explore"
 
 country_color_map = {
     "黑海岸": (28, 55, 118),
@@ -71,162 +57,127 @@ progress_color = [
 ]
 
 
-def get_progress_color(progress):
+def get_progress_color_hex(progress: float) -> str:
     float_progress = float(progress)
     result = WAVES_MOONLIT
     for _p, color in progress_color:
         if float_progress >= _p:
             result = color
-    return result
-
+    return rgb_to_hex(result)
 
 async def draw_explore_img(ev: Event, uid: str, user_id: str):
-    is_self_ck, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
-    if not ck:
-        return hint.error_reply(WAVES_CODE_102)
-    # 账户数据
-    account_info = await waves_api.get_base_info(uid, ck)
-    if not account_info.success:
-        return account_info.throw_msg()
-    if not account_info.data:
-        return "用户未展示数据"
-    account_info = AccountBaseInfo.model_validate(account_info.data)
+    if not PLAYWRIGHT_AVAILABLE:
+        return await draw_explore_img_pil(ev, uid, user_id)
 
-    explore_data = await waves_api.get_explore_data(uid, ck)
-    if not explore_data.success:
-        return explore_data.throw_msg()
-    explore_data = ExploreList.model_validate(explore_data.data)
-    if not is_self_ck and not explore_data.open:
-        return hint.error_reply(msg="探索数据未开启")
+    try:
+        is_self_ck, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
+        if not ck:
+            return WAVES_CODE_102
 
-    # 计算总高度
-    base_info_h = 250
-    footer_h = 70
-    h = base_info_h + footer_h
-    explore_title_h = 200
-    explore_frame_h = 500
+        account_info_res = await waves_api.get_base_info(uid, ck)
+        if not account_info_res.success:
+            return account_info_res.throw_msg()
+        if not account_info_res.data:
+            return "用户未展示数据"
+        account_info = AccountBaseInfo.model_validate(account_info_res.data)
 
-    if not explore_data.exploreList:
-        return hint.error_reply(msg="探索数据为空")
+        explore_data_res = await waves_api.get_explore_data(uid, ck)
+        if not explore_data_res.success:
+            return explore_data_res.throw_msg()
+        explore_data = ExploreList.model_validate(explore_data_res.data)
+        
+        if not is_self_ck and not explore_data.open:
+            return "探索数据未开启"
 
-    for mi, _explore in enumerate(explore_data.exploreList):
-        h += explore_title_h
-        if _explore.areaInfoList:
-            h += math.ceil(len(_explore.areaInfoList) / 3) * explore_frame_h
+        if not explore_data.exploreList:
+            return "探索数据为空"
 
-    img = get_custom_waves_bg(2000, h, "bg3")
+        avatar, _ = await draw_pic_with_ring(ev)
 
-    # 头像部分
-    avatar, avatar_ring = await draw_pic_with_ring(ev)
-    img.paste(avatar, (85, 70), avatar)
-    img.paste(avatar_ring, (95, 80), avatar_ring)
+        avatar_url = pil_to_b64(avatar)
 
-    # 基础信息 名字 特征码
-    base_info_bg = Image.open(TEXT_PATH / "base_info_bg.png")
-    base_info_draw = ImageDraw.Draw(base_info_bg)
-    base_info_draw.text((275, 120), f"{account_info.name[:7]}", "white", waves_font_30, "lm")
-    base_info_draw.text((226, 173), f"特征码:  {account_info.id}", GOLD, waves_font_25, "lm")
-    img.paste(base_info_bg, (75, 20), base_info_bg)
-
-    # 账号基本信息，由于可能会没有，放在一起
-    if account_info.is_full:
-        title_bar = Image.open(TEXT_PATH / "title_bar.png")
-        title_bar_draw = ImageDraw.Draw(title_bar)
-        title_bar_draw.text((660, 125), "账号等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text((660, 78), f"Lv.{account_info.level}", "white", waves_font_42, "mm")
-
-        title_bar_draw.text((810, 125), "世界等级", GREY, waves_font_26, "mm")
-        title_bar_draw.text((810, 78), f"Lv.{account_info.worldLevel}", "white", waves_font_42, "mm")
-        img.paste(title_bar, (40, 70), title_bar)
-
-    explore_title = Image.open(TEXT_PATH / "explore_title.png")
-
-    explore_frame = Image.open(TEXT_PATH / "explore_frame.png")
-    explore_bar = Image.open(TEXT_PATH / "explore_bar.png")
-    max_len = 357
-    hi = base_info_h
-    for mi, _explore in enumerate(explore_data.exploreList[::-1]):
-        _explore: ExploreArea
-        _explore_title = explore_title.copy()
-        _explore_title = await change_color(_explore_title, country_color_map.get(_explore.country.countryName, YELLOW))
-        # 大区域探索度
-        content_img = Image.open(BytesIO((await sget(_explore.country.homePageIcon)).content)).convert("RGBA")
-        _explore_title.alpha_composite(content_img, (150, 30))
-        _explore_title_draw = ImageDraw.Draw(_explore_title)
-        _explore_title_draw.text((370, 100), f"{_explore.country.countryName}", "white", waves_font_42, "lm")
-        _explore_title_draw.text(
-            (370, 150),
-            f"探索度: {_explore.countryProgress}%",
-            "white",
-            waves_font_42,
-            "lm",
-        )
-        tag = tag_yes if float(_explore.countryProgress) == 100 else tag_no
-        _explore_title.alpha_composite(tag, (1740, 60))
-
-        img.paste(_explore_title, (0, hi), _explore_title)
-
-        for ni, _subArea in enumerate(_explore.areaInfoList or []):
-            _subArea: AreaInfo
-            _explore_frame = explore_frame.copy()
-            _explore_frame = await change_color(_explore_frame, get_progress_color(_subArea.areaProgress), h=83)
-            _explore_frame_draw = ImageDraw.Draw(_explore_frame)
-
-            _explore_frame_draw.text((30, 50), f"{_subArea.areaName}", "white", waves_font_36, "lm")
-            _explore_frame_draw.text((570, 50), f"{_subArea.areaProgress}%", "white", waves_font_36, "rm")
-
-            for bi, _item in enumerate(_subArea.itemList):
-                _item: ExploreItem
-                _explore_bar = explore_bar.copy()
-
-                _explore_frame.alpha_composite(_explore_bar, (20, 90 + 70 * bi))
-                ratio = _item.progress * 0.01
-                # 进度条
-                _explore_frame_draw.rounded_rectangle(
-                    (131, 113 + 70 * bi, int(131 + ratio * max_len), 126 + 70 * bi),
-                    radius=10,
-                    fill=get_progress_color(_item.progress),
-                )
-
-                # 小地区探索度
-                if len(_item.name) >= 4:
-                    s = len(_item.name) // 2
-                    _explore_frame_draw.text(
-                        (68, 95 + 70 * bi),
-                        f"{_item.name[:s]}",
-                        "white",
-                        waves_font_24,
-                        "mm",
-                    )
-                    _explore_frame_draw.text(
-                        (68, 125 + 70 * bi),
-                        f"{_item.name[s:]}",
-                        "white",
-                        waves_font_24,
-                        "mm",
-                    )
+        explore_list_data = []
+        for _explore in reversed(explore_data.exploreList):
+            # Country Info
+            country_name = _explore.country.countryName
+            country_color_rgb = country_color_map.get(country_name, YELLOW)
+            country_color_hex = rgb_to_hex(country_color_rgb)
+            
+            # Country Icon
+            icon_url = _explore.country.homePageIcon
+            icon_b64 = await get_image_b64_with_cache(icon_url, EXPLORE_IMAGE_PATH) if icon_url else ""
+            
+            # Country Tag
+            is_complete = float(_explore.countryProgress) >= 100
+            tag_text = "已完成" if is_complete else "未完成"
+            
+            # Areas
+            completed_sub_areas = []
+            incomplete_sub_areas = []
+            
+            for _subArea in (_explore.areaInfoList or []):
+                area_progress = float(_subArea.areaProgress)
+                area_color_hex = get_progress_color_hex(area_progress)
+                
+                # Filter Items: Only items < 100%, max 5
+                display_items = []
+                for _item in _subArea.itemList:
+                    item_progress = float(_item.progress)
+                    if item_progress >= 100:
+                        continue
+                        
+                    item_info = {
+                        "name": _item.name,
+                        "progress": item_progress,
+                        "icon_url": await get_image_b64_with_cache(_item.icon, EXPLORE_IMAGE_PATH) if _item.icon else "",
+                        "color": get_progress_color_hex(item_progress)
+                    }
+                    display_items.append(item_info)
+                
+                # Limit to top 5 unfinished items
+                display_items = display_items[:5]
+                
+                area_data = {
+                    "name": _subArea.areaName,
+                    "progress": area_progress,
+                    "progress_color": area_color_hex,
+                    "item_list": display_items
+                }
+                
+                if not display_items:
+                    completed_sub_areas.append(area_data)
                 else:
-                    _explore_frame_draw.text(
-                        (68, 120 + 70 * bi),
-                        f"{_item.name}",
-                        "white",
-                        waves_font_30,
-                        "mm",
-                    )
-                _explore_frame_draw.text(
-                    (580, 120 + 70 * bi),
-                    f"{_item.progress}%",
-                    "white",
-                    waves_font_30,
-                    "rm",
-                )
+                    incomplete_sub_areas.append(area_data)
 
-            _w = 100 + 600 * (ni % 3)
-            _h = hi + explore_title_h + explore_frame_h * int(ni / 3)
-            img.alpha_composite(_explore_frame, (_w, _h))
+            explore_list_data.append({
+                "name": country_name,
+                "progress": _explore.countryProgress,
+                "color": country_color_hex,
+                "icon_url": icon_b64,
+                "tag_text": tag_text,
+                "completed_sub_areas": completed_sub_areas,
+                "incomplete_sub_areas": incomplete_sub_areas
+            })
 
-        hi += math.ceil(len(_explore.areaInfoList or []) / 3) * explore_frame_h + explore_title_h
+        context = {
+            "user_name": account_info.name,
+            "user_id": account_info.id,
+            "level": account_info.level,
+            "world_level": account_info.worldLevel,
+            "show_stats": account_info.is_full,
+            "avatar_url": avatar_url,
+            "explore_list": explore_list_data,
+            "footer_b64": get_footer_b64(footer_type="white") or "",
+        }
 
-    img = add_footer(img)
-    img = await convert_img(img)
-    return img
+        logger.debug("[鸣潮] 准备通过HTML渲染探索卡片")
+        img_bytes = await render_html(waves_templates, "explore_card.html", context)
+        if img_bytes:
+            return img_bytes
+        else:
+            logger.warning("[鸣潮] Playwright 渲染返回空, 正在回退到 PIL 渲染")
+            return await draw_explore_img_pil(ev, uid, user_id)
+
+    except Exception as e:
+        logger.exception(f"[鸣潮] HTML渲染失败: {e}")
+        return await draw_explore_img_pil(ev, uid, user_id)

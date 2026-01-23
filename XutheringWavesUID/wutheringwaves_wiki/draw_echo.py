@@ -4,6 +4,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import crop_center_img
 
@@ -22,6 +23,7 @@ from ..utils.fonts.waves_fonts import (
     waves_font_origin,
 )
 from ..utils.resource.download_file import get_phantom_img
+from .other_wiki_render import draw_echo_wiki_render
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
@@ -162,6 +164,21 @@ def wrap_text_with_manual_newlines(
 
 
 async def draw_wiki_echo(echo_name: str):
+    """声骸图鉴 - 优先使用HTML渲染，失败则回退到PIL"""
+    # 尝试HTML渲染
+    try:
+        result = await draw_echo_wiki_render(echo_name)
+        if result:
+            return result
+    except Exception as e:
+        logger.warning(f"[鸣潮] 声骸图鉴HTML渲染失败，回退到PIL: {e}")
+
+    # 回退到PIL绘制
+    return await _draw_wiki_echo_pil(echo_name)
+
+
+async def _draw_wiki_echo_pil(echo_name: str):
+    """声骸图鉴 - PIL绘制"""
     echo_name = alias_to_echo_name(echo_name)
     echo_id = echo_name_to_echo_id(echo_name)
     if echo_id is None:
