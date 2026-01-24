@@ -211,8 +211,9 @@ async def send_card_info(bot: Bot, ev: Event):
     if isinstance(msg, str) or isinstance(msg, bytes):
         await bot.send_option(msg, buttons)
     if num_updated <= 1 and isinstance(msg, bytes):
+        asyncio.sleep(3) # 先发完吧
         from ..wutheringwaves_config import PREFIX
-        single_refresh_notice = f"本次刷新少于2个角色\n如仅需刷新单角色，建议如 {PREFIX}刷新莫宁面板"
+        single_refresh_notice = f"本次刷新<2\n如仅需但刷新，可用 {PREFIX}刷新[角色]面板"
         await bot.send(f" {single_refresh_notice}" if ev.group_id else single_refresh_notice, at_sender=ev.group_id is not None)
 
 

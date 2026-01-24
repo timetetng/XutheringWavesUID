@@ -174,7 +174,7 @@ async def draw_reward_img(uid: str, ck: str, ev: Event):
     # 计算积分
     score_data = await calculate_score(uid, ck)
     if not score_data:
-        return "获取数据失败"
+        return "获取数据失败，请先登录！"
 
     account_info = score_data["account_info"]
 
