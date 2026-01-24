@@ -6,6 +6,7 @@ from gsuid_core.models import Event
 from ..utils.hint import error_reply
 from ..utils.at_help import ruser_id
 from .draw_role_info import draw_role_img
+from .draw_reward_card import draw_reward_img
 from ..utils.waves_api import waves_api
 from ..utils.error_reply import WAVES_CODE_102, WAVES_CODE_103
 from ..utils.database.models import WavesBind
@@ -30,3 +31,23 @@ async def send_role_info(bot: Bot, ev: Event):
 
     im = await draw_role_img(uid, ck, ev)
     await bot.send(im)  # type: ignore
+
+
+@waves_role_info.on_fullmatch(("积分", "伴行", "伴行积分"), block=True)
+async def send_score_info(bot: Bot, ev: Event):
+    logger.info("[鸣潮]开始执行[伴行积分]")
+    user_id = ruser_id(ev)
+    uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
+    logger.info(f"[鸣潮][伴行积分] user_id: {user_id} UID: {uid}")
+    if not uid:
+        await bot.send(error_reply(WAVES_CODE_103))
+        return
+
+    _, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
+    if not ck:
+        await bot.send(error_reply(WAVES_CODE_102))
+        return
+
+    im = await draw_reward_img(uid, ck, ev)
+    if im:
+        await bot.send(im)  # type: ignore

@@ -12,9 +12,9 @@ WAVES_ERROR_CODE.update(ERROR_CODE)
 def error_reply(code: Optional[int] = None, msg: str = "") -> str:
     msg_list = []
     if isinstance(code, int):
-        msg_list.append(f"❌错误代码为: {code}")
+        msg_list.append(f"❌ {code}")
     if msg:
-        msg_list.append(f"📝错误信息: {msg}")
+        msg_list.append(f"📝 {msg}")
     elif code in WAVES_ERROR_CODE:
-        msg_list.append(f"📝错误信息: {WAVES_ERROR_CODE[code]}")
+        msg_list.append(f"📝 {WAVES_ERROR_CODE[code]}")
     return "\n".join(msg_list)
