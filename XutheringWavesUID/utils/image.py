@@ -84,8 +84,10 @@ WAVES_SHUXING_MAP = {
 }
 
 
-def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
-    """将RGB元组转换为十六进制颜色字符串"""
+def rgb_to_hex(rgb: Tuple) -> str:
+    """将RGB/RGBA元组转换为十六进制或rgba颜色字符串"""
+    if len(rgb) == 4:
+        return "rgba({}, {}, {}, {})".format(rgb[0], rgb[1], rgb[2], rgb[3])
     return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
 
 
@@ -309,23 +311,24 @@ async def get_weapon_type(name: str = "") -> Image.Image:  # 出新武器改这�
     return Image.open(TEXT_PATH / f"weapon_type/weapon_type_{name}.png").convert("RGBA")
 
 
-def get_waves_bg(w: int, h: int, bg: str = "bg") -> Image.Image:
+def get_waves_bg(w: int = 0, h: int = 0, bg: str = "bg", crop: bool = True) -> Image.Image:
     img = Image.open(TEXT_PATH / f"{bg}.jpg").convert("RGBA")
-    return crop_center_img(img, w, h)
+    return crop_center_img(img, w, h) if crop else img
 
 
 def get_custom_waves_bg(  # 不是所有地方都适合替换为custom，函数分开
-    w: int,
-    h: int,
+    w: int = 0,
+    h: int = 0,
     bg: str = "bg",
+    crop: bool = True,
 ):
     img: Optional[Image.Image] = None
     if ShowConfig.get_config("CardBg").data:
         bg_path = Path(ShowConfig.get_config("CardBgPath").data)
         if bg_path.exists():
             img = Image.open(bg_path).convert("RGBA")
-            img = crop_center_img(img, w, h)
-
+            if crop and img:
+                img = crop_center_img(img, w, h)
     if not img:
         img = get_waves_bg(w, h, bg)
 
@@ -456,6 +459,10 @@ async def change_color(
 
     if not isinstance(h, int) or not isinstance(w, int):
         return chain
+
+    # 如果 color 是 RGBA，只取前三个
+    if len(color) == 4:
+        color = color[:3]
 
     # 遍历图像的每个像素
     for y in range(h):  # 图像高度

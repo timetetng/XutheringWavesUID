@@ -5,9 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wuthering Waves Item Wiki Redesign</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Oswald:wght@500;700&display=swap');
+
         @font-face {
             font-family: 'WavesOrigin';
             src: local('WavesOrigin'), url('../../utils/fonts/HYWenHei-85W.ttf');
+        }
+
+        @font-face {
+            font-family: 'Source Han Sans CN';
+            src: local('Source Han Sans CN'), local('Noto Sans SC'), local('Microsoft YaHei');
         }
 
         :root {
@@ -27,7 +34,7 @@
 
         body {
             background-color: transparent;
-            font-family: 'WavesOrigin', 'Microsoft YaHei', sans-serif;
+            font-family: 'Source Han Sans CN', 'WavesOrigin', 'Microsoft YaHei', sans-serif;
             color: var(--text-main);
             width: 1500px;
             overflow: hidden;
@@ -51,7 +58,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
+            background:
                 radial-gradient(circle at 20% 50%, rgba(15, 15, 19, 0.4) 0%, rgba(15, 15, 19, 0.85) 100%),
                 linear-gradient(to right, rgba(15, 15, 19, 0.8) 0%, rgba(15, 15, 19, 0.4) 40%, rgba(15, 15, 19, 0.2) 100%);
             z-index: 1;
@@ -63,7 +70,7 @@
             padding: 50px 60px;
             display: flex;
             gap: 40px;
-            
+
             align-items: stretch;
             height: 100%;
         }
@@ -183,6 +190,7 @@
         }
 
         .stat-value {
+            font-family: 'Oswald', sans-serif;
             font-size: 20px;
             font-weight: bold;
             color: #fff;
@@ -372,7 +380,6 @@
             color: var(--main-color);
         }
 
-        
         .footer {
             position: absolute;
             bottom: 15px;
@@ -380,14 +387,14 @@
             width: 100%;
             text-align: center;
             z-index: 3;
-            pointer-events: none; 
+            pointer-events: none;
             height: 32px;
         }
 
         .footer img {
             height: 100%;
-            opacity: 1; 
-            filter: brightness(0) invert(1); 
+            opacity: 1;
+            filter: brightness(0) invert(1);
             display: inline-block;
         }
     </style>

@@ -338,12 +338,16 @@ async def _render_stamina_card(
     curr_time = int(time.time())
     refreshTimeStamp = daily_info.energyData.refreshTimeStamp if daily_info.energyData.refreshTimeStamp else curr_time
     
+    is_stamina_urgent = False
     if refreshTimeStamp != curr_time:
         date_from_timestamp = datetime.fromtimestamp(refreshTimeStamp)
         now = datetime.now()
         today = now.date()
         tomorrow = today + timedelta(days=1)
         
+        if refreshTimeStamp - curr_time < 4 * 3600:
+            is_stamina_urgent = True
+
         if date_from_timestamp.date() == today:
             recover_text = "今天 " + datetime.fromtimestamp(refreshTimeStamp).strftime("%H:%M:%S")
         elif date_from_timestamp.date() == tomorrow:
@@ -352,6 +356,7 @@ async def _render_stamina_card(
              recover_text = datetime.fromtimestamp(refreshTimeStamp).strftime("%m.%d %H:%M:%S")
     else:
         recover_text = "漂泊者该上潮了"
+        is_stamina_urgent = True
         
     # 结晶
     store_cur = account_info.storeEnergy
@@ -424,7 +429,8 @@ async def _render_stamina_card(
             "total": stamina_total,
             "percent": stamina_percent,
             "color": stamina_color,
-            "recovery_text": recover_text
+            "recovery_text": recover_text,
+            "urgent": is_stamina_urgent
         },
         "store_energy": {
             "cur": store_cur,
