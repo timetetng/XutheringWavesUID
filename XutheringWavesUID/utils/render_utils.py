@@ -169,17 +169,15 @@ async def render_html(waves_templates, template_name: str, context: dict) -> Opt
     try:
         logger.debug(f"[鸣潮] HTML渲染开始: {template_name}")
 
-        # 获取模板
         template = waves_templates.get_template(template_name)
 
-        # 检查是否启用外置渲染
         remote_render_enable = WutheringWavesConfig.get_config("RemoteRenderEnable").data
         remote_url = WutheringWavesConfig.get_config("RemoteRenderUrl").data if remote_render_enable else None
 
-        # 尝试外置渲染
         if remote_render_enable and remote_url:
             try:
-                context["font_css_url"] = "https://fonts.loli.net/css2?family=JetBrains+Mono:wght@500;700&family=Oswald:wght@500;700&display=swap"
+                font_css_url = WutheringWavesConfig.get_config("FontCssUrl").data
+                context["font_css_url"] = font_css_url
                 html_content = template.render(**context)
                 logger.debug(f"[鸣潮] 使用在线字体渲染 HTML: {template_name}")
 
@@ -198,6 +196,10 @@ async def render_html(waves_templates, template_name: str, context: dict) -> Opt
 
             if font_css_path.exists():
                 context["font_css_url"] = f"{base_url}/waves/fonts/{_FONT_CSS_NAME}"
+            else:
+                # 本地没有fonts.css时，使用配置的在线字体URL
+                font_css_url = WutheringWavesConfig.get_config("FontCssUrl").data
+                context["font_css_url"] = font_css_url
 
             html_content = template.render(**context)
             logger.debug(f"[鸣潮] 使用本地字体渲染 HTML: {template_name}")
@@ -352,7 +354,6 @@ async def get_image_b64_with_cache(url: str, cache_path: Path, quality = None) -
             with open(local_path, "rb") as f:
                 data = f.read()
             b64_str = f"data:image/{ext};base64,{base64.b64encode(data).decode('utf-8')}"
-            logger.debug(f"[渲染工具] 图片未压缩: {filename}, 大小: {len(data)} bytes")
             return b64_str
 
         img = Image.open(local_path)
