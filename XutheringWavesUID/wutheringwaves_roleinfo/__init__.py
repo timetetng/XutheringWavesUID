@@ -21,7 +21,7 @@ async def send_role_info(bot: Bot, ev: Event):
     uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
     logger.info(f"[鸣潮][查询信息] user_id: {user_id} UID: {uid}")
     if not uid:
-        await bot.send(error_reply(WAVES_CODE_103))
+        await bot.send(error_reply(WAVES_CODE_102))
         return
 
     _, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
@@ -40,7 +40,7 @@ async def send_score_info(bot: Bot, ev: Event):
     uid = await WavesBind.get_uid_by_game(user_id, ev.bot_id)
     logger.info(f"[鸣潮][伴行积分] user_id: {user_id} UID: {uid}")
     if not uid:
-        await bot.send(error_reply(WAVES_CODE_103))
+        await bot.send(error_reply(WAVES_CODE_102))
         return
 
     _, ck = await waves_api.get_ck_result(uid, user_id, ev.bot_id)
