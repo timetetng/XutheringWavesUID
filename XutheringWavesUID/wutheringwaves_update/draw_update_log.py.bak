@@ -17,7 +17,11 @@ def _get_git_logs() -> List[str]:
         # 自定义输出格式，提取 "unix时间戳||提交信息"
         # %at = author time (unix timestamp), %s = subject
         process = subprocess.Popen(
+<<<<<<< HEAD
+            ["git", "log", "--pretty=format:%s", "-100"],
+=======
             ["git", "log", "--pretty=format:%at||%s", "-40"],
+>>>>>>> 8ef0cd1 (🌈log按真实提交时间排序)
             cwd=str(Path(__file__).parents[2]),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
