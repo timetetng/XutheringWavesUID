@@ -9,7 +9,7 @@ from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils.image import get_waves_bg
-from ..utils.fonts.waves_fonts import draw_text_with_fallback, emoji_font, waves_font_origin
+from ..utils.fonts.waves_fonts import emoji_font, waves_font_origin
 
 
 def _get_git_logs() -> List[str]:
@@ -17,7 +17,11 @@ def _get_git_logs() -> List[str]:
         # 自定义输出格式，提取 "unix时间戳||提交信息"
         # %at = author time (unix timestamp), %s = subject
         process = subprocess.Popen(
+<<<<<<< HEAD
+            ["git", "log", "--pretty=format:%s", "-100"],
+=======
             ["git", "log", "--pretty=format:%at||%s", "-40"],
+>>>>>>> 8ef0cd1 (🌈log按真实提交时间排序)
             cwd=str(Path(__file__).parents[2]),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -57,89 +61,23 @@ def _get_git_logs() -> List[str]:
         return []
 
 
-def _is_regional_indicator(ch: str) -> bool:
-    return 0x1F1E6 <= ord(ch) <= 0x1F1FF
-
-
-def _is_skin_tone(ch: str) -> bool:
-    return 0x1F3FB <= ord(ch) <= 0x1F3FF
-
-
-def _try_consume_emoji(message: str, i: int) -> Tuple[str, int]:
-    """从位置 i 开始尝试消费一个完整的 emoji 序列。
-
-    返回 (emoji_string, new_index)，如果不是 emoji 则返回 ("", i)。
-    """
-    n = len(message)
-    ch = message[i]
-
-    # 旗帜: 两个连续的 regional indicator
-    if _is_regional_indicator(ch) and i + 1 < n and _is_regional_indicator(message[i + 1]):
-        return message[i : i + 2], i + 2
-
-    # keycap 序列: [0-9#*] + VS16? + U+20E3
-    if ch in "0123456789#*":
-        j = i + 1
-        if j < n and message[j] == "\ufe0f":
-            j += 1
-        if j < n and message[j] == "\u20e3":
-            j += 1
-            return message[i:j], j
-        # 单独的数字/符号不算 emoji
-        return "", i
-
-    # 标准 emoji (So/Sk)
-    cat = unicodedata.category(ch)
-    if cat not in ("So", "Sk"):
-        return "", i
-
-    j = i + 1
-    # 消费 VS16
-    if j < n and message[j] == "\ufe0f":
-        j += 1
-    # 消费肤色修饰符
-    if j < n and _is_skin_tone(message[j]):
-        j += 1
-    # 消费 ZWJ 序列 (如 👨‍💻)
-    while j < n and message[j] == "\u200d":
-        if j + 1 >= n:
-            break
-        nxt = message[j + 1]
-        nxt_cat = unicodedata.category(nxt)
-        if nxt_cat not in ("So", "Sk"):
-            break
-        j += 2  # 跳过 ZWJ + emoji
-        # ZWJ 后的组件也可能带 VS16 / 肤色
-        if j < n and message[j] == "\ufe0f":
-            j += 1
-        if j < n and _is_skin_tone(message[j]):
-            j += 1
-
-    return message[i:j], j
-
-
 def _extract_leading_emojis(message: str) -> Tuple[List[str], str]:
-    """提取消息开头连续的 emoji，并返回剩余文本。
-
-    支持复合 emoji 序列:
-    - ZWJ 序列 (👨‍💻)
-    - 肤色修饰 (👍🏽)
-    - keycap 序列 (#️⃣, 1️⃣)
-    - 旗帜 (🇨🇳)
-    - VS16 变体 (🕊️)
-    """
+    """提取消息开头连续的 emoji，并返回剩余文本。"""
     emojis = []
     i = 0
     while i < len(message):
-        # 跳过 emoji 之间可能出现的 VS16
-        if message[i] == "\ufe0f":
+        ch = message[i]
+        if ch == "\ufe0f":  # VS16
             i += 1
             continue
-        emoji_str, new_i = _try_consume_emoji(message, i)
-        if not emoji_str:
+        if unicodedata.category(ch) in ("So", "Sk"):
+            emojis.append(ch)
+            if i + 1 < len(message) and message[i + 1] == "\ufe0f":
+                i += 2
+            else:
+                i += 1
+        else:
             break
-        emojis.append(emoji_str)
-        i = new_i
     return emojis, message[i:].lstrip()
 
 
@@ -180,7 +118,7 @@ async def draw_update_log_img() -> Union[bytes, str]:
     img = get_waves_bg(950, 20 + 475 + 80 * len(_CACHED_LOGS))
     img.paste(log_title, (0, 0), log_title)
     img_draw = ImageDraw.Draw(img)
-    draw_text_with_fallback(img_draw, (475, 432), "XWUID 更新记录", "white", gs_font_30, "mm")
+    img_draw.text((475, 432), "XWUID 更新记录", "white", gs_font_30, "mm")
 
     for index, raw_log in enumerate(_CACHED_LOGS):
         emojis, text = _extract_leading_emojis(raw_log)
@@ -221,6 +159,6 @@ async def draw_update_log_img() -> Union[bytes, str]:
 
         # 绘制文本
         text_x = max(x, 160)
-        draw_text_with_fallback(img_draw, (text_x, base_y + 40), text, "white", gs_font_30, "lm")
+        img_draw.text((text_x, base_y + 40), text, "white", gs_font_30, "lm")
 
     return await convert_img(img)
