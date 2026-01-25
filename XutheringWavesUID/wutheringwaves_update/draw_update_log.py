@@ -14,8 +14,14 @@ from ..utils.fonts.waves_fonts import emoji_font, waves_font_origin
 
 def _get_git_logs() -> List[str]:
     try:
+        # 自定义输出格式，提取 "unix时间戳||提交信息"
+        # %at = author time (unix timestamp), %s = subject
         process = subprocess.Popen(
+<<<<<<< HEAD
             ["git", "log", "--pretty=format:%s", "-100"],
+=======
+            ["git", "log", "--pretty=format:%at||%s", "-40"],
+>>>>>>> 8ef0cd1 (🌈log按真实提交时间排序)
             cwd=str(Path(__file__).parents[2]),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -24,18 +30,32 @@ def _get_git_logs() -> List[str]:
         if process.returncode != 0:
             logger.warning(f"Git log failed: {stderr.decode('utf-8', errors='ignore')}")
             return []
-        commits = stdout.decode("utf-8", errors="ignore").split("\n")
 
-        # 只返回有 emoji 开头的提交记录
-        filtered_commits = []
-        for commit in commits:
-            if commit:
-                emojis, _ = _extract_leading_emojis(commit)
-                if emojis:  # 只要有 emoji 就保留
-                    filtered_commits.append(commit)
-                    if len(filtered_commits) >= 18:
-                        break
-        return filtered_commits
+        lines = stdout.decode("utf-8", errors="ignore").split("\n")
+
+        valid_commits = []
+        for line in lines:
+            if not line:
+                continue
+            try:
+                # 解析时间戳和消息
+                parts = line.split("||", 1)
+                if len(parts) == 2:
+                    timestamp = int(parts[0])
+                    message = parts[1]
+                    #  emoji 过滤
+                    emojis, _ = _extract_leading_emojis(message)
+                    if emojis:
+                        # 存入元组 (时间戳, 消息)
+                        valid_commits.append((timestamp, message))
+            except ValueError:
+                continue
+
+        # 强行按时间戳倒序排列（最新的 Author Date 排前面）
+        valid_commits.sort(key=lambda x: x[0], reverse=True)
+        # 取前 18 个并只返回消息部分
+        return [msg for _, msg in valid_commits[:18]]
+
     except Exception as e:
         logger.warning(f"Get logs failed: {e}")
         return []
