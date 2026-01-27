@@ -193,7 +193,8 @@ async def ann_detail_card(ann_id: Union[int, str], is_check_time=False) -> Union
         if content:
             postId = content[0]["postId"]
         else:
-            postId = str(ann_id)
+            return "未找到该公告"
+            # postId = str(ann_id)
 
         res = await waves_api.get_ann_detail(postId)
         if not res:

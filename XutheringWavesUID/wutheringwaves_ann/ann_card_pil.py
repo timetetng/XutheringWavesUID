@@ -242,8 +242,8 @@ async def ann_detail_card(ann_id: int, is_check_time=False) -> Union[bytes, str,
     if content:
         postId = content[0]["postId"]
     else:
-        postId = str(ann_id)
-        logger.info(f"公告ID {ann_id} 不在当前列表中，尝试直接作为postId查询")
+        return "未找到该公告"
+        # postId = str(ann_id)
 
     res = await waves_api.get_ann_detail(postId)
     if not res:
