@@ -12,7 +12,7 @@
         body {
             margin: 0; padding: 0;
             background-color: #0f1115;
-            font-family: 'Source Han Sans CN', 'Noto Sans CJK JP', 'Noto Sans CJK KR', sans-serif;
+            font-family: 'Source Han Sans CN', sans-serif;
             width: 1000px;
             display: flex;
             flex-direction: column;
@@ -241,13 +241,13 @@
 
         
 .role-mini {
-    width: 120px;   /* 控制头像的宽度 */
-    height: 120px;  /* 控制头像的高度 */
-    border-radius: 12px; 
+    width: 125px; 
+    height: 125px;
+    border-radius: 50%; /* 核心修改：50% 即可实现正圆 */
     background: #2a2e35;
     border: 1px solid rgba(255,255,255,0.1);
     position: relative; 
-    overflow: hidden;
+    overflow: hidden; /* 必须保留，确保内部图片被裁剪成圆形 */
     box-shadow: 0 6px 12px rgba(0,0,0,0.5);
     transition: transform 0.2s; 
     flex-shrink: 0;
