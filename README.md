@@ -80,13 +80,13 @@ https://blog.ovoii.io/posts/notes/wwbot
 
 + [GPL-3.0 License](https://github.com/Loping151/XutheringWavesUID/blob/main/LICENSE)
 
-<!-- 本仓库仅允许正常、可沟通、具有良知的个体部署。以下bot可能使用部分本仓库代码或直接使用本仓库的资源，但不受到本仓库支持，不与本仓库共享数据，其行为造成的任何影响与本仓库及开发者无关。
+本仓库仅允许正常、可沟通、具有良知的个体部署： https://ngabbs.com/read.php?tid=45654606。以下bot行为造成的任何影响与本仓库及开发者无关。
 
-<img src="./assets/1.png" alt="😅这个骗了点钱觉得自己垄断了不起喜欢骂别人fw的" width="200" />
-<img src="./assets/2.png" alt="😅是的，由你独立开发，要点脸吧" width="200" />
-<img src="./assets/3.png" alt="😅我知道你会选择他俩，因为你要赚钱" width="200" />
+<img src="./assets/1.png" alt="😅" width="200" />
+<img src="./assets/2.png" alt="😅" width="200" />
+<img src="./assets/3.png" alt="😅" width="200" />
 
-主要辨识方式：国际服（可自由编造的数据）参与排名、底部具有 岸宝 或 kokos.icu、底部具有《created by MoonShadow1976》 -->
+主要辨识方式：国际服（可自由编造的数据）参与排名、底部具有 岸宝 或 kokos.icu、底部具有《created by MoonShadow1976》
 
 ## 支持设备列表：
 win_amd64: python3.10-3.13<br>
