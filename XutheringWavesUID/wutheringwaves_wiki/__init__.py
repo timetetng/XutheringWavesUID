@@ -118,7 +118,7 @@ async def send_tower_challenge_info(bot: Bot, ev: Event):
     im = await draw_tower_challenge_img(ev, target_period)
     if isinstance(im, str):
         at_sender = True if ev.group_id else False
-        await bot.send(im, at_sender)
+        await bot.send(im, at_sender=at_sender)
     else:
         await bot.send(im)
 
@@ -148,7 +148,7 @@ async def send_slash_challenge_info(bot: Bot, ev: Event):
     im = await draw_slash_challenge_img(ev, target_period)
     if isinstance(im, str):
         at_sender = True if ev.group_id else False
-        await bot.send(im, at_sender)
+        await bot.send(im, at_sender=at_sender)
     else:
         await bot.send(im)
 
@@ -183,6 +183,6 @@ async def send_matrix_challenge_info(bot: Bot, ev: Event):
     im = await draw_matrix_challenge_img(ev, target_period)
     if isinstance(im, str):
         at_sender = True if ev.group_id else False
-        await bot.send(im, at_sender)
+        await bot.send(im, at_sender=at_sender)
     else:
         await bot.send(im)
