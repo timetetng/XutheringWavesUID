@@ -9,7 +9,7 @@ from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils.image import get_waves_bg
-from ..utils.fonts.waves_fonts import emoji_font, waves_font_origin
+from ..utils.fonts.waves_fonts import draw_text_with_fallback, emoji_font, waves_font_origin
 
 
 def _get_git_logs() -> List[str]:
@@ -164,7 +164,7 @@ async def draw_update_log_img() -> Union[bytes, str]:
     img = get_waves_bg(950, 20 + 475 + 80 * len(_CACHED_LOGS))
     img.paste(log_title, (0, 0), log_title)
     img_draw = ImageDraw.Draw(img)
-    img_draw.text((475, 432), "XWUID 更新记录", "white", gs_font_30, "mm")
+    draw_text_with_fallback(img_draw, (475, 432), "XWUID 更新记录", "white", gs_font_30, "mm")
 
     for index, raw_log in enumerate(_CACHED_LOGS):
         emojis, text = _extract_leading_emojis(raw_log)
@@ -205,6 +205,6 @@ async def draw_update_log_img() -> Union[bytes, str]:
 
         # 绘制文本
         text_x = max(x, 160)
-        img_draw.text((text_x, base_y + 40), text, "white", gs_font_30, "lm")
+        draw_text_with_fallback(img_draw, (text_x, base_y + 40), text, "white", gs_font_30, "lm")
 
     return await convert_img(img)
