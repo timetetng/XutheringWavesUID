@@ -29,8 +29,8 @@ TEXT_PATH = Path(__file__).parent / "texture2d"
 time_icon = Image.open(TEXT_PATH / "time_icon.png")
 
 _CALENDAR_DATE_PATTERNS = (
-    re.compile(r"(\d{4})(\d{2})(\d{2})"),  # YYYYMMDD
-    re.compile(r"(\d{2})-(\d{2})-(\d{2})"),  # YY-MM-DD
+    re.compile(r"^(\d{4})(\d{2})(\d{2})\."),  # YYYYMMDD
+    re.compile(r"^(\d{2})-(\d{2})-(\d{2})\."),  # YY-MM-DD
 )
 
 
