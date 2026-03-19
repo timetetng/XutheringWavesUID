@@ -22,7 +22,7 @@ from ..utils.render_utils import (
     render_html,
 )
 from ..utils.resource.download_file import get_phantom_img, get_material_img
-from ..utils.image import get_square_weapon, get_attribute_effect, pil_to_b64
+from ..utils.image import get_square_weapon, get_square_weapon_path, get_attribute_effect, pil_to_b64, img_to_b64
 
 TEXTURE2D_PATH = Path(__file__).parents[1] / "utils" / "texture2d"
 WIKI_TEXTURE_PATH = Path(__file__).parent / "texture2d"
@@ -51,8 +51,7 @@ async def draw_weapon_wiki_render(weapon_name: str) -> Optional[bytes]:
 async def _prepare_weapon_context(weapon_id: str, weapon_model: WeaponModel) -> Dict[str, Any]:
     """准备武器渲染上下文"""
     # 获取武器图片
-    weapon_pic = await get_square_weapon(weapon_id)
-    weapon_pic_b64 = pil_to_b64(weapon_pic, quality=80, bake=True) if weapon_pic else ""
+    weapon_pic_b64 = img_to_b64(get_square_weapon_path(weapon_id), quality=80, bake=True)
 
     # 获取稀有度图标
     rarity_path = WIKI_TEXTURE_PATH / f"rarity_{weapon_model.starLevel}.png"
@@ -197,12 +196,11 @@ async def draw_weapon_list_render(weapon_type: str = "") -> Optional[bytes]:
         weapons_render = []
 
         for weapon in weapons:
-            weapon_pic = await get_square_weapon(weapon["id"])
             weapons_render.append({
                 "name": weapon["name"],
                 "star": weapon["star_level"],
                 "effect_name": weapon["effect_name"],
-                "icon": pil_to_b64(weapon_pic, quality=80, bake=True) if weapon_pic else "",
+                "icon": img_to_b64(get_square_weapon_path(weapon["id"]), quality=80, bake=True),
             })
 
         groups_data.append({

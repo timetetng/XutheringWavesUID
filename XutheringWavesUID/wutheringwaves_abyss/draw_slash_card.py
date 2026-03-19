@@ -27,9 +27,10 @@ from ..utils.render_utils import (
 from ..utils.resource.RESOURCE_PATH import waves_templates, SLASH_PATH, PLAYER_PATH
 from ..utils.image import (
     pil_to_b64,
+    img_to_b64,
     get_waves_bg,
     get_event_avatar,
-    get_square_avatar,
+    get_square_avatar_path,
     CHAIN_COLOR,
 )
 from ..utils.ascension.char import get_char_model
@@ -181,8 +182,7 @@ async def draw_slash_img(ev: Event, uid: str, user_id: str) -> Union[bytes, str]
                             chain_name = temp.get_chain_name()
 
                         # 使用本地头像（和PIL版本一致）
-                        role_avatar = await get_square_avatar(slash_role.roleId)
-                        role_icon_b64 = pil_to_b64(role_avatar, quality=80, bake=True) if role_avatar else ""
+                        role_icon_b64 = img_to_b64(get_square_avatar_path(slash_role.roleId), quality=80, bake=True)
 
                         roles_data.append({
                             "id": slash_role.roleId,

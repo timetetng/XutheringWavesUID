@@ -20,9 +20,10 @@ from ..utils.render_utils import (
 from ..utils.resource.RESOURCE_PATH import waves_templates, CHALLENGE_PATH
 from ..utils.image import (
     pil_to_b64,
+    img_to_b64,
     get_waves_bg,
     get_event_avatar,
-    get_square_avatar,
+    get_square_avatar_path,
     CHAIN_COLOR,
 )
 from ..utils.char_info_utils import get_all_roleid_detail_info
@@ -119,8 +120,7 @@ async def draw_challenge_img(ev: Event, uid: str, user_id: str) -> Union[bytes, 
                         chain_name = temp.get_chain_name()
 
                     # 使用本地头像（和PIL版本一致）
-                    role_avatar = await get_square_avatar(role_id)
-                    role_icon_b64 = pil_to_b64(role_avatar, quality=80, bake=True) if role_avatar else ""
+                    role_icon_b64 = img_to_b64(get_square_avatar_path(role_id), quality=80, bake=True)
 
                     roles_data.append({
                         "id": role_id or "",
