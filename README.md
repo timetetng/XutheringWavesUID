@@ -68,7 +68,19 @@ https://blog.ovoii.io/posts/notes/wwbot
 >
 > 可以直接对bot发送`core安装插件XutheringWavesUID`，然后重启core以应用安装**
 >
-> **权重和伤害计算更新时，仅需发送 ww下载全部资源 将自动重载，无需重启**
+> **权重和伤害计算更新时，仅需发送 ww下载全部资源 将自动重载**
+>
+> **建议安装以下额外依赖：**
+> - `playwright`：用于渲染公告、wiki图等功能。安装后还需执行 `uv run playwright install chromium`
+> - `opencv-python`：用于面板图重复判断、提取面板图、相似度识别等功能
+> - `fonttools`：用于多语言字体 fallback，未安装时日韩文可能显示为方框
+>
+> ```bash
+> # Linux/Mac
+> source .venv/bin/activate && uv pip install playwright opencv-python fonttools && uv run playwright install chromium
+> # Windows
+> .venv\Scripts\activate; uv pip install playwright opencv-python fonttools; uv run playwright install chromium
+> ```
 
 ## 丨其他
 
