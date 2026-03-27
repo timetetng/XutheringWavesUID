@@ -445,8 +445,7 @@ async def _draw_matrix_detail_html(
                         except Exception:
                             pass
 
-                    # 通过匹配的 char_id 查等级和共鸣链
-                    role_level = None
+                    # 通过匹配的 char_id 查共鸣链
                     chain_num = None
                     chain_name = ""
                     if role_idx < len(team_char_ids) and team_char_ids[role_idx]:
@@ -454,13 +453,11 @@ async def _draw_matrix_detail_html(
                         # 特殊角色已在 _resolve_special_chars 中修正
                         if str(char_id) in role_detail_info_map:
                             temp: RoleDetailData = role_detail_info_map[str(char_id)]
-                            role_level = temp.level
                             chain_num = temp.get_chain_num()
                             chain_name = temp.get_chain_name()
 
                     roles_data.append({
                         "icon_url": role_b64,
-                        "level": role_level,
                         "chain": chain_num,
                         "chain_name": chain_name,
                     })
@@ -469,7 +466,6 @@ async def _draw_matrix_detail_html(
                 for _ in range(len(roles_data), 3):
                     roles_data.append({
                         "icon_url": "",
-                        "level": None,
                         "chain": None,
                         "chain_name": "",
                         "is_placeholder": True,
