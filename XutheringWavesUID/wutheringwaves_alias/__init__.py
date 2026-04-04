@@ -48,3 +48,56 @@ async def handle_list_char_alias(bot: Bot, ev: Event):
     char_name = char_name.strip()
     msg = await char_alias_list(char_name)
     await bot.send(msg)
+
+
+@sv_list_char_alias.on_fullmatch("别名", block=True)
+async def handle_all_char_alias(bot: Bot, ev: Event):
+    """Render all character aliases as a single image."""
+    from ..utils.name_convert import char_alias_data, alias_to_char_name_list
+    from ..utils.name_convert import char_name_to_char_id
+    from ..utils.image import get_square_avatar, pil_to_b64, get_custom_waves_bg
+    from ..utils.render_utils import PLAYWRIGHT_AVAILABLE, render_html, get_footer_b64
+    from ..utils.resource.RESOURCE_PATH import waves_templates
+
+    if not char_alias_data:
+        load_alias_data()
+    if not char_alias_data:
+        return await bot.send("暂无别名数据")
+
+    chars = []
+    for name in sorted(char_alias_data.keys()):
+        aliases = alias_to_char_name_list(name)
+        other_aliases = [a for a in aliases if a != name]
+
+        avatar = ""
+        char_id = char_name_to_char_id(name)
+        if char_id:
+            try:
+                avatar_img = await get_square_avatar(char_id)
+                avatar = pil_to_b64(avatar_img, quality=75)
+            except Exception:
+                pass
+
+        chars.append({
+            "name": name,
+            "aliases": other_aliases,
+            "avatar": avatar,
+        })
+
+    bg_img = get_custom_waves_bg(bg="bg12", crop=False)
+    bg_url = pil_to_b64(bg_img, quality=75)
+    footer_b64 = get_footer_b64(footer_type="white") or ""
+
+    context = {
+        "chars": chars,
+        "total": len(chars),
+        "bg_url": bg_url,
+        "footer_b64": footer_b64,
+    }
+
+    if PLAYWRIGHT_AVAILABLE:
+        img_bytes = await render_html(waves_templates, "alias_all.html", context)
+        if img_bytes:
+            return await bot.send(img_bytes)
+
+    return await bot.send("别名表渲染失败")
