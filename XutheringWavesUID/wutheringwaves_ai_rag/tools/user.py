@@ -45,18 +45,16 @@ async def _read_player_json(uid: str, filename: str) -> Optional[Any]:
 
 
 def _score_rating(score: float) -> str:
-    """与 XW 评分阈值一致（仅示意，实际阈值在 draw_rank_list_card.py）。"""
-    if score >= 250:
+    """与 calculate.py 的 total_grade × 250 阈值一致 (C/B/A/S/SS/SSS)。"""
+    if score >= 210:
+        return "SSS"
+    if score >= 195:
         return "SS"
-    if score >= 220:
-        return "S+"
-    if score >= 200:
+    if score >= 175:
         return "S"
-    if score >= 180:
-        return "A+"
-    if score >= 160:
+    if score >= 150:
         return "A"
-    if score >= 140:
+    if score >= 120:
         return "B"
     return "C"
 
