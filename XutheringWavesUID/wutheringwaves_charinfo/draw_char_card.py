@@ -776,7 +776,7 @@ async def draw_char_detail_img(
 
     score_report = None
     scoreDetail = ScoreDetailRegister.find_class(char_id)
-    if scoreDetail and role_detail.phantomData and role_detail.phantomData.equipPhantomList:
+    if scoreDetail and not is_limit_query and role_detail.phantomData and role_detail.phantomData.equipPhantomList:
         try:
             score_calc = scoreDetail[0] if isinstance(scoreDetail, list) else scoreDetail
             score_title = score_calc.get("title", f"综合评分-{char_name}")
@@ -800,7 +800,7 @@ async def draw_char_detail_img(
             ):
                 grade = get_panel_score_grade(score_report.score)
                 if (
-                    grade in ("b", "c")
+                    grade in ("a", "b", "c")
                     and score_report.score > 40
                     and char_state.get("advice_dirty", True)
                 ):
