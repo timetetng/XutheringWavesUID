@@ -857,9 +857,9 @@ async def draw_char_detail_img(
     right_image_temp = Image.new("RGBA", (600, 1100))
     if score_report is not None:
         right_prop_y = 100
-        right_weapon_banner_y = 605
-        weapon_name_y = 765
-        weapon_bg_y = 745
+        right_weapon_banner_y = 620
+        weapon_name_y = 780
+        weapon_bg_y = 770
     else:
         right_prop_y = 80
         right_weapon_banner_y = 550
@@ -1146,7 +1146,7 @@ async def draw_char_detail_img(
         img.alpha_composite(grade_icon, dest=(90, 1080 + bar_shift))
         score_draw = ImageDraw.Draw(img)
         draw_text_with_fallback(score_draw, (400, 1140 + bar_shift), f"{score_report.score:.2f}", "white", waves_font_40, "mm")
-        draw_text_with_fallback(score_draw, (400, 1200 + bar_shift), t("综合评分", locale), GREY, waves_font_40, "mm")
+        draw_text_with_fallback(score_draw, (400, 1210 + bar_shift), t("综合评分", locale), GREY, waves_font_40, "mm")
 
     img = add_footer(img)
     if need_convert_img:
@@ -1897,9 +1897,9 @@ async def draw_char_optimize_img(ev: Event, uid: str, char: str, user_id: str, w
     right_image_temp = Image.new("RGBA", (600, 1100))
 
     right_prop_y = 100
-    right_weapon_banner_y = 605
-    weapon_name_y = 765
-    weapon_bg_y = 745
+    right_weapon_banner_y = 620
+    weapon_name_y = 780
+    weapon_bg_y = 770
 
     # 武器 banner
     banner2 = Image.open(TEXT_PATH / "banner2.png")
@@ -2166,7 +2166,7 @@ async def draw_char_optimize_img(ev: Event, uid: str, char: str, user_id: str, w
     img.alpha_composite(grade_icon, dest=(90, 1080 + bar_shift))
     score_draw = ImageDraw.Draw(img)
     draw_text_with_fallback(score_draw, (400, 1140 + bar_shift), f"{score_report.score:.2f}", "white", waves_font_40, "mm")
-    draw_text_with_fallback(score_draw, (400, 1200 + bar_shift), t("综合评分", locale), GREY, waves_font_40, "mm")
+    draw_text_with_fallback(score_draw, (400, 1210 + bar_shift), t("综合评分", locale), GREY, waves_font_40, "mm")
 
     img = add_footer(img)
     img = await convert_img(img)
