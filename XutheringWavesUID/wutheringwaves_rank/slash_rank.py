@@ -24,9 +24,8 @@ from ..utils.image import (
     get_waves_bg,
     get_square_avatar,
     pic_download_from_url,
-    get_bot_bg,
 )
-from .rank_badge import draw_rank_badge
+from .rank_badge import draw_bot_name_badge, draw_rank_badge
 from ..utils.api.model import SlashDetail
 from ..utils.api.wwapi import (
     GET_SLASH_RANK_URL,
@@ -228,14 +227,7 @@ async def draw_all_slash_rank_card(bot: Bot, ev: Event):
         # bot主人名字
         botName = rank_temp.alias_name if rank_temp.alias_name else ""
         if botName:
-            info_block = Image.new("RGBA", (200, 30), color=(255, 255, 255, 0))
-            bg_img = get_bot_bg(getattr(rank_temp, "background", ""))
-            if bg_img is not None:
-                info_block.alpha_composite(bg_img.resize((200, 30)))
-            else:
-                ImageDraw.Draw(info_block).rounded_rectangle([0, 0, 200, 30], radius=6, fill=(54, 54, 54, int(0.6 * 255)))
-            ImageDraw.Draw(info_block).text((100, 15), botName, "white", waves_font_18, "mm")
-            role_bg.alpha_composite(info_block, (350, 66))
+            draw_bot_name_badge(role_bg, getattr(rank_temp, "background", ""), botName, (346, 61))
 
         # 总分数
         role_bg_draw.text(

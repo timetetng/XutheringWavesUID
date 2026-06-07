@@ -257,8 +257,6 @@ _TITLE_BG_PREFIX = "T_TitleCardBg_"
 _RESERVED_BG = "weixin"  # 小程序专属, 普通用户禁用, 随机兜底也排除
 # 标准背景图在 388x72 内的实际有效区域(量自常规图 L7/T9/R7/B8)。固定裁剪而非按各图
 # 透明边裁: 部分图有溢出有效区的特效, 按透明边裁会得到不一致大小。比例化兼容非标尺寸。
-_BG_REF_W, _BG_REF_H = 388, 72
-_BG_CROP = (7, 9, 381, 64)
 _title_bg_index_cache: Optional[dict] = None
 _title_bg_img_cache: dict = {}
 
@@ -299,12 +297,7 @@ def get_bot_bg(background: str) -> Optional[Image.Image]:
             img = Image.open(path).convert("RGBA")
         except Exception:
             return None
-        w, h = img.size
-        l, t, r, b = _BG_CROP
-        img = img.crop((
-            round(w * l / _BG_REF_W), round(h * t / _BG_REF_H),
-            round(w * r / _BG_REF_W), round(h * b / _BG_REF_H),
-        ))
+        # 不裁剪, 返回整图由调用方直接 resize, 兼容异形边缘的背景
         _title_bg_img_cache[key] = img
     return img
 

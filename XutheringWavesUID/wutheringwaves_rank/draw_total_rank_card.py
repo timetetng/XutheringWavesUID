@@ -13,7 +13,7 @@ from gsuid_core.pool import to_thread
 from gsuid_core.utils.image.convert import convert_img
 
 from .rank_avatar import get_avatar
-from .rank_badge import draw_rank_badge
+from .rank_badge import draw_bot_name_badge, draw_rank_badge
 from ..utils.util import get_version, hide_uid
 from ..utils.image import (
     RED,
@@ -22,7 +22,6 @@ from ..utils.image import (
     get_ICON,
     add_footer,
     get_square_avatar,
-    get_bot_bg,
     get_custom_waves_bg,
 )
 from ..utils.api.wwapi import (
@@ -190,14 +189,7 @@ def _compose_total_rank(card_img, bar, details, results, char_avatar_map,
 
         botName = getattr(detail, "alias_name", None)
         if botName:
-            info_block = Image.new("RGBA", (200, 30), color=(255, 255, 255, 0))
-            bg_img = get_bot_bg(getattr(detail, "background", ""))
-            if bg_img is not None:
-                info_block.alpha_composite(bg_img.resize((200, 30)))
-            else:
-                ImageDraw.Draw(info_block).rounded_rectangle([0, 0, 200, 30], radius=6, fill=(54, 54, 54, int(0.6 * 255)))
-            ImageDraw.Draw(info_block).text((100, 15), botName, "white", waves_font_18, "mm")
-            bar_bg.alpha_composite(info_block, (350, 66))
+            draw_bot_name_badge(bar_bg, getattr(detail, "background", ""), botName, (346, 61))
 
         bar_draw.text(
             (1180, 45),

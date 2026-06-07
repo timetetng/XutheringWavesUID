@@ -12,7 +12,7 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from .rank_avatar import get_avatar
-from .rank_badge import draw_rank_badge
+from .rank_badge import draw_bot_name_badge, draw_rank_badge
 from ..utils.util import get_version, hide_uid
 from ..utils.image import (
     RED,
@@ -25,7 +25,6 @@ from ..utils.image import (
     crop_center_img,
     get_square_weapon,
     get_sonata_label,
-    get_bot_bg,
     get_custom_waves_bg,
     get_role_pile_default,
     get_sonata_effect_image,
@@ -310,14 +309,7 @@ async def draw_all_rank_card(bot: Bot, ev: Event, char: str, rank_type: str, pag
         # bot主人名字
         botName = rank.alias_name if rank.alias_name else ""
         if botName:
-            info_block = Image.new("RGBA", (200, 30), color=(255, 255, 255, 0))
-            bg_img = get_bot_bg(getattr(rank, "background", ""))
-            if bg_img is not None:
-                info_block.alpha_composite(bg_img.resize((200, 30)))
-            else:
-                ImageDraw.Draw(info_block).rounded_rectangle([0, 0, 200, 30], radius=6, fill=(54, 54, 54, int(0.6 * 255)))
-            ImageDraw.Draw(info_block).text((100, 15), botName, "white", waves_font_18, "mm")
-            bar_bg.alpha_composite(info_block, (350, 65))
+            draw_bot_name_badge(bar_bg, getattr(rank, "background", ""), botName, (346, 60))
 
         # 贴到背景
         card_img.paste(bar_bg, (0, title_h + text_bar_h + index * bar_star_h), bar_bg)
