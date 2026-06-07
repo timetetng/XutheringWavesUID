@@ -8,6 +8,7 @@ from .calculate import get_calc_map, calc_phantom_score, get_total_score_bg
 from .damage.utils import comma_separated_number
 from .char_info_utils import get_all_role_detail_info
 from .damage.abstract import DamageRankRegister, ScoreDetailRegister
+from .damage.modal import get_role_modal, get_modal_name
 from .api.model import RoleDetailData
 from .ascension.sonata import detect_combo_sonata
 
@@ -29,6 +30,8 @@ class WavesCharRank(BaseModel):
     weaponResonLevel: int  # 武器共鸣等级
     sonataName: str  # 合鸣效果
     expected_name: str  # 期望伤害名字
+    modal: str = ""  # 模态 key (无模态角色为空)
+    modal_name: str = ""
 
     def to_rank_dict(self):
         return {
@@ -44,6 +47,8 @@ class WavesCharRank(BaseModel):
             "overall_score": self.overall_score,
             "expected_damage": self.expected_damage if self.expected_damage else 0,
             "expected_name": self.expected_name if self.expected_name else "",
+            "modal": self.modal,
+            "modal_name": self.modal_name,
         }
 
 
@@ -78,6 +83,7 @@ def _compute_one_char_rank(role_detail, need_expected_damage=False, need_overall
             calc.phantom_card,
             role_detail.role.roleName,
             role_detail.role.roleId,
+            get_role_modal(role_detail),
         )
         for i, _phantom in enumerate(equipPhantomList):
             if _phantom and _phantom.phantomProp:
@@ -120,6 +126,7 @@ def _compute_one_char_rank(role_detail, need_expected_damage=False, need_overall
             sonataName = combo_sonata
 
     phantom_score = round(phantom_score, 2)
+    modal = get_role_modal(role_detail)
     return WavesCharRank(
         **{
             "roleId": role_detail.role.roleId,
@@ -137,6 +144,8 @@ def _compute_one_char_rank(role_detail, need_expected_damage=False, need_overall
             "weaponResonLevel": role_detail.weaponData.resonLevel,
             "sonataName": sonataName,
             "expected_name": expected_name,
+            "modal": modal,
+            "modal_name": get_modal_name(role_detail.role.roleId, modal),
         }
     )
 
