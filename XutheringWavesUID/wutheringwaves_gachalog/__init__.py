@@ -52,11 +52,11 @@ sv_gacha_web = SV("waves抽卡网页")
 ERROR_MSG_NOTIFY = f"请给出正确的抽卡记录链接, 可发送【{PREFIX}抽卡帮助】"
 ERROR_MSG_IMPORT_TYPE = (
     "请指定导入类型，支持的方式：\n"
-    f"{PREFIX}导入工坊抽卡记录123456789\n"
-    f"{PREFIX}导入小黑盒抽卡记录123456789\n"
-    "也可以在指令和9位数字之间加空格"
+    f"{PREFIX}导入工坊抽卡记录+uid\n"
+    f"{PREFIX}导入小黑盒抽卡记录+uid\n"
+    "请将【+uid】替换为对应的9位数字UID"
 )
-IMPORT_UID_RE = re.compile(r"^\s*(\d{9})\s*$")
+IMPORT_UID_RE = re.compile(r"^\s*\+?\s*(\d{9})\s*$")
 
 
 def _migrate_legacy_gacha_backups():
@@ -209,7 +209,7 @@ async def get_gacha_log_by_mcgf(bot: Bot, ev: Event):
     target_uid = _parse_import_uid(ev.text)
     if not target_uid:
         return await bot.send(
-            f"请带上9位数字，例如：{PREFIX}导入工坊抽卡记录123456789"
+            f"请带上UID，例如：{PREFIX}导入工坊抽卡记录123456789"
         )
 
     if not gacha_import_lock.acquire(f"{ev.user_id}_{uid}"):
@@ -290,7 +290,7 @@ async def get_gacha_log_by_xhh(bot: Bot, ev: Event):
     heybox_id = _parse_import_uid(ev.text)
     if not heybox_id:
         return await bot.send(
-            f"请带上9位数字，例如：{PREFIX}导入小黑盒抽卡记录123456789"
+            f"请带上UID，例如：{PREFIX}导入小黑盒抽卡记录123456789"
         )
 
     if not gacha_import_lock.acquire(f"{ev.user_id}_{uid}"):

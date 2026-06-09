@@ -37,6 +37,7 @@ FILLER_ITEM = {
     "resourceType": "武器",
     "name": "源能臂铠·测肆",
     "count": 1,
+    "isFiller": True,
 }
 
 
