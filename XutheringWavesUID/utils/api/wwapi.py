@@ -67,6 +67,7 @@ class RankDetail(BaseModel):
     expected_name: str
     overall_score: float = 0
     sender_avatar: Optional[str] = ""
+    hide_uid: bool = False
 
 
 class RankInfoData(BaseModel):
@@ -134,6 +135,7 @@ class TotalRankDetail(BaseModel):
     total_score: float
     char_score_details: List[CharScoreDetail]
     sender_avatar: Optional[str] = ""
+    hide_uid: bool = False
 
 
 class TotalRankInfoData(BaseModel):
@@ -282,6 +284,7 @@ class SlashRank(BaseModel):
     alias_name: str  # 主人别名
     background: Optional[str] = ""  # 主人背景
     sender_avatar: Optional[str] = ""
+    hide_uid: bool = False
 
 
 class SlashRankData(BaseModel):
@@ -358,6 +361,7 @@ class MatrixRank(BaseModel):
     alias_name: str
     background: Optional[str] = ""
     sender_avatar: Optional[str] = ""
+    hide_uid: bool = False
 
 
 class MatrixRankData(BaseModel):

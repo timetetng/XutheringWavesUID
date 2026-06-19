@@ -17,6 +17,7 @@ from gsuid_core.utils.image.convert import convert_img
 from .rank_avatar import get_avatar
 from .rank_badge import draw_rank_badge
 from ._permissions import get_rank_token_condition, filter_active_group_users
+from ..utils.util import build_uid_masker
 from ..utils.image import (
     RED,
     GREY,
@@ -298,6 +299,8 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
         rankInfoList_display.append(rankInfo)
         display_rank_ids.append(rankId)
 
+    _mask_uid = await build_uid_masker([(ri.uid, ri.qid) for ri in rankInfoList_display], ev.bot_id)
+
     # 获取等级标签 (S/A/SS)
     threshold_label = "S"  # 默认值
     if threshold == 195:
@@ -371,7 +374,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
 
     card_img = await _compose_rank_list(
         card_img, bar, rankInfoList_display, display_rank_ids, results, char_avatar_map,
-        self_uid, threshold_label, header_height, item_spacing, width,
+        self_uid, threshold_label, header_height, item_spacing, width, _mask_uid,
     )
     card_img = await convert_img(card_img)
 
@@ -380,7 +383,7 @@ async def draw_rank_list(bot: Bot, ev: Event, threshold: int = 175) -> Union[str
 
 @to_thread
 def _compose_rank_list(card_img, bar, rankInfoList_display, display_rank_ids, results, char_avatar_map,
-                      self_uid, threshold_label, header_height, item_spacing, width):
+                      self_uid, threshold_label, header_height, item_spacing, width, mask_uid=None):
     from ..utils.calc import WuWaCalc
     for rank_temp_index, temp in enumerate(zip(rankInfoList_display, results)):
         rankInfo = temp[0]
@@ -397,7 +400,7 @@ def _compose_rank_list(card_img, bar, rankInfoList_display, display_rank_ids, re
         uid_color = "white"
         if rankInfo.uid == self_uid:
             uid_color = RED
-        bar_draw.text((210, 40), f"{rankInfo.uid}", uid_color, waves_font_20, "lm")
+        bar_draw.text((210, 40), f"{mask_uid(rankInfo.uid, rankInfo.qid)}", uid_color, waves_font_20, "lm")
 
         char_count = len(rankInfo.role_details)
         bar_draw.text((210, 75), f"{threshold_label}角色数: {char_count}", "white", waves_font_18, "lm")

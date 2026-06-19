@@ -15,7 +15,7 @@ from gsuid_core.utils.image.image_tools import crop_center_img
 from .rank_avatar import get_avatar
 from .rank_badge import draw_rank_badge
 from ._permissions import get_rank_token_condition, filter_active_group_users
-from ..utils.util import hide_uid
+from ..utils.util import build_uid_masker
 from ..utils.image import (
     RED,
     GREY,
@@ -368,6 +368,8 @@ async def draw_rank_img(bot: Bot, ev: Event, char: str, rank_type: str) -> Union
     ]
     results = await asyncio.gather(*tasks)
 
+    _mask_uid = await build_uid_masker([(r.uid, r.qid) for r in rankInfoList], ev.bot_id)
+
     for index, temp in enumerate(zip(rankInfoList, results)):
         rank, role_avatar = temp
         rank: RankInfo
@@ -467,7 +469,7 @@ async def draw_rank_img(bot: Bot, ev: Event, char: str, rank_type: str) -> Union
         uid_color = "white"
         if rankId is not None and rankId == rank_id:
             uid_color = RED
-        bar_star_draw.text((210, 75), f"{hide_uid(rank.uid)}", uid_color, waves_font_20, "lm")
+        bar_star_draw.text((210, 75), f"{_mask_uid(rank.uid, rank.qid)}", uid_color, waves_font_20, "lm")
 
         # 贴到背景
         card_img.paste(bar_bg, (0, title_h + index * bar_star_h), bar_bg)

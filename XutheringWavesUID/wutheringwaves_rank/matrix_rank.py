@@ -16,7 +16,7 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
-from ..utils.util import get_version, hide_uid
+from ..utils.util import get_version, hide_uid, build_uid_masker
 from ..utils.image import (
     RED,
     GREY,
@@ -207,7 +207,7 @@ async def draw_all_matrix_rank_card(bot: Bot, ev: Event):
         uid_color = "white"
         if rank_temp.waves_id == item.waves_id:
             uid_color = RED
-        role_bg_draw.text((210, 40), f"{hide_uid(rank_temp.waves_id)}", uid_color, waves_font_20, "lm")
+        role_bg_draw.text((210, 40), f"{hide_uid(rank_temp.waves_id, user_pref='on' if rank_temp.hide_uid else '')}", uid_color, waves_font_20, "lm")
 
         # 原特征码位置 → 显示上场队伍数量（未登录时为0，不显示）
         team_count = rank_temp.team_count if rank_temp.team_count else len(rank_temp.teams)
@@ -543,6 +543,8 @@ async def draw_matrix_rank_list(bot: Bot, ev: Event):
     if rankId and rankInfo and rankId > rank_length:
         rankInfoList_display.append(rankInfo)
 
+    _mask_uid = await build_uid_masker([(ri.uid, ri.user_id) for ri in rankInfoList_display], ev.bot_id)
+
     # 设置图像尺寸
     width = 1000
     item_spacing = 120
@@ -629,7 +631,7 @@ async def draw_matrix_rank_list(bot: Bot, ev: Event):
         uid_color = "white"
         if rankInfo.uid == self_uid:
             uid_color = RED
-        role_bg_draw.text((210, 70), f"{rankInfo.uid}", uid_color, waves_font_20, "lm")
+        role_bg_draw.text((210, 70), f"{_mask_uid(rankInfo.uid, rankInfo.user_id)}", uid_color, waves_font_20, "lm")
 
         # 总分数 (右侧，左移25px)
         total_color = get_local_score_color(rankInfo.score)
