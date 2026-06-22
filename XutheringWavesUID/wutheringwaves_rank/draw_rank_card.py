@@ -446,7 +446,7 @@ async def draw_rank_img(bot: Bot, ev: Event, char: str, rank_type: str) -> Union
         _y = 120
         wrc_fill = WEAPON_RESONLEVEL_COLOR[weaponData.resonLevel or 0] + (int(0.8 * 255),)
         weapon_bg_temp_draw.rounded_rectangle([_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill)
-        weapon_bg_temp_draw.text((_x, _y), f"精{weaponData.resonLevel}", "white", waves_font_24, "lm")
+        weapon_bg_temp_draw.text((_x, _y), f"{weaponData.resonLevel}阶", "white", waves_font_24, "lm")
 
         weapon_bg_temp.alpha_composite(weapon_icon_bg, dest=(45, 0))
 

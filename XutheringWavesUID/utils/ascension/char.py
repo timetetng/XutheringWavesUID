@@ -117,7 +117,7 @@ def extract_param_index(skill_desc: str, search_pattern: str) -> Optional[int]:
 def get_char_detail(char_id: Union[str, int], level: int, breach: Union[int, None] = None) -> WavesCharResult:
     """
     breach 突破
-    resonLevel 精炼
+    resonLevel 谐振
     """
     ensure_data_loaded()
     result = WavesCharResult()

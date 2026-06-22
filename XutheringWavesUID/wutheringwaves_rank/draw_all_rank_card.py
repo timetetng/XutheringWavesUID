@@ -334,7 +334,7 @@ async def draw_all_rank_card(bot: Bot, ev: Event, char: str, rank_type: str, pag
         _y = 120
         wrc_fill = WEAPON_RESONLEVEL_COLOR[rank.weapon_reson_level] + (int(0.8 * 255),)
         weapon_bg_temp_draw.rounded_rectangle([_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill)
-        weapon_bg_temp_draw.text((_x, _y), f"精{rank.weapon_reson_level}", "white", waves_font_24, "lm")
+        weapon_bg_temp_draw.text((_x, _y), f"{rank.weapon_reson_level}阶", "white", waves_font_24, "lm")
 
         weapon_bg_temp.alpha_composite(weapon_icon_bg, dest=(45, 0))
 

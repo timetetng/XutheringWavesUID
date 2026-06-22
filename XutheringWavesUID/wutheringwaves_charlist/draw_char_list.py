@@ -312,12 +312,12 @@ def _render_bar(asset) -> Image.Image:
 
     weapon_bg_temp.alpha_composite(weapon_icon_bg, dest=(45, 0))
 
-    # 精X 打在武器图右下角: 彩色圆角块+白字; 亮底(精5 AMBER)压暗以保证白字清晰
+    # N阶 打在武器图右下角: 彩色圆角块+白字; 亮底(5阶 AMBER)压暗以保证白字清晰
     rc = WEAPON_RESONLEVEL_COLOR[weaponData.resonLevel]
     if 0.299 * rc[0] + 0.587 * rc[1] + 0.114 * rc[2] > 135:
         rc = tuple(int(c * 0.6) for c in rc)
     weapon_bg_temp_draw.rounded_rectangle([110, 102, 168, 132], radius=8, fill=rc + (int(0.85 * 255),))  # type: ignore
-    weapon_bg_temp_draw.text((139, 117), f"精{weaponData.resonLevel}", "white", waves_font_24, "mm")
+    weapon_bg_temp_draw.text((139, 117), f"{weaponData.resonLevel}阶", "white", waves_font_24, "mm")
 
     bar_star.alpha_composite(weapon_bg_temp.resize((260, 130)), dest=(710, 25))
 

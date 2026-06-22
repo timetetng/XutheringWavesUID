@@ -115,6 +115,16 @@ from ..utils.imagetool import get_weapon_icon_bg
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 
+
+def _weapon_reson_text(level, locale: str = "") -> str:
+    # 谐振阶: zh N阶 / cht N階 / en·jp·kr 官方 Rank(ランク/튜닝)→R 前缀
+    if locale == "cht":
+        return f"{level}階"
+    if locale in ("en", "jp", "kr"):
+        return f"R{level}"
+    return f"{level}阶"
+
+
 ph_sort_name = [
     [("生命", "0"), ("攻击", "0"), ("防御", "0"), ("共鸣效率", "0%")],
     [
@@ -898,7 +908,7 @@ async def draw_char_detail_img(
     wrc_fill = WEAPON_RESONLEVEL_COLOR[weaponData.resonLevel] + (int(0.8 * 255),)  # type: ignore
     weapon_bg_temp_draw.rounded_rectangle([_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill)
 
-    draw_text_with_fallback(weapon_bg_temp_draw, (_x, _y), f"{t('精', locale)}{weaponData.resonLevel}", "white", waves_font_24, "lm")
+    draw_text_with_fallback(weapon_bg_temp_draw, (_x, _y), _weapon_reson_text(weaponData.resonLevel, locale), "white", waves_font_24, "lm")
 
     weapon_breach = get_breach(weaponData.breach, weaponData.level)
     for i in range(0, weapon_breach):  # type: ignore
@@ -1912,7 +1922,7 @@ async def draw_char_optimize_img(ev: Event, uid: str, char: str, user_id: str, w
     _y = weapon_name_y + 7
     wrc_fill = WEAPON_RESONLEVEL_COLOR[weaponData.resonLevel] + (int(0.8 * 255),)
     weapon_bg_temp_draw.rounded_rectangle([_x - 15, _y - 15, _x + 50, _y + 15], radius=7, fill=wrc_fill)
-    draw_text_with_fallback(weapon_bg_temp_draw, (_x, _y), f"{t('精', locale)}{weaponData.resonLevel}", "white", waves_font_24, "lm")
+    draw_text_with_fallback(weapon_bg_temp_draw, (_x, _y), _weapon_reson_text(weaponData.resonLevel, locale), "white", waves_font_24, "lm")
 
     weapon_breach = get_breach(weaponData.breach, weaponData.level)
     for i in range(0, weapon_breach):
