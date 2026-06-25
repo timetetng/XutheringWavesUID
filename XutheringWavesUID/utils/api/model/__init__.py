@@ -125,3 +125,8 @@ from .skin import (  # noqa: F401
     RoleSkinItem,
     RoleDecoration,
 )
+from .motor import (  # noqa: F401
+    MotorData,
+    MotorSkinInfo,
+    MotorSkinItem,
+)

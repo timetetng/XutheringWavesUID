@@ -13,6 +13,7 @@ from ..utils.api.model import (
     Role,
     RoleList,
     SkinData,
+    MotorData,
     CalabashData,
     RoleDetailData,
     AccountBaseInfo,
@@ -83,15 +84,16 @@ async def draw_role_img(uid: str, ck: str, ev: Event):
         # 基础信息数据
         base_info_list = []
         if account_info.is_full:
+            # highlight 不在此指定, 由模板按格子位置决定
             base_info_list = [
-                {"key": "活跃天数", "value": f"{account_info.activeDays}", "highlight": True},
-                {"key": "解锁角色", "value": f"{account_info.roleNum}", "highlight": False},
-                {"key": "UP角色", "value": f"{up_num}", "highlight": True},
-                {"key": "数据坞等级", "value": f"{calabash_data.level if calabash_data.isUnlock else 0}", "highlight": False},
-                {"key": "已达成成就", "value": f"{account_info.achievementCount}", "highlight": True},
-                {"key": "成就星数", "value": f"{account_info.achievementStar}", "highlight": False},
-                {"key": "小型信标", "value": f"{account_info.smallCount}", "highlight": False},
-                {"key": "中型信标", "value": f"{account_info.bigCount}", "highlight": True},
+                {"key": "活跃天数", "value": f"{account_info.activeDays}"},
+                {"key": "解锁角色", "value": f"{account_info.roleNum}"},
+                {"key": "UP角色", "value": f"{up_num}"},
+                {"key": "数据坞等级", "value": f"{calabash_data.level if calabash_data.isUnlock else 0}"},
+                {"key": "已达成成就", "value": f"{account_info.achievementCount}"},
+                {"key": "成就星数", "value": f"{account_info.achievementStar}"},
+                {"key": "小型信标", "value": f"{account_info.smallCount}"},
+                {"key": "中型信标", "value": f"{account_info.bigCount}"},
             ]
 
             # 服饰数量(共鸣者服饰 quality>3) + 饰品数量, 失败不影响卡片
@@ -100,16 +102,25 @@ async def draw_role_img(uid: str, ck: str, ev: Event):
                 if skin_resp.success:
                     skin_data = SkinData.model_validate(skin_resp.data)
                     costume_num = sum(1 for s in skin_data.roleSkinList if (s.quality or 0) > 3)
-                    base_info_list.append({"key": "服饰数量", "value": f"{costume_num}", "highlight": False})
-                    base_info_list.append({"key": "饰品数量", "value": f"{len(skin_data.roleDecorationList)}", "highlight": True})
+                    base_info_list.append({"key": "服饰数量", "value": f"{costume_num}"})
+                    base_info_list.append({"key": "饰品数量", "value": f"{len(skin_data.roleDecorationList)}"})
             except Exception as e:
                 logger.warning(f"[鸣潮·角色信息] 获取服饰数量失败: {e}")
 
-            for bid, b in enumerate(account_info.treasureBoxList or []):
-                base_info_list.append({"key": b.name, "value": f"{b.num}", "highlight": bid % 2})
+            # 摩托等级, 失败不影响卡片
+            try:
+                motor_resp = await waves_api.get_motor_data(uid, ck)
+                if motor_resp.success:
+                    motor_data = MotorData.model_validate(motor_resp.data)
+                    base_info_list.append({"key": "摩托等级", "value": f"{motor_data.motorLevel}"})
+            except Exception as e:
+                logger.warning(f"[鸣潮·角色信息] 获取摩托等级失败: {e}")
 
-            for bid, b in enumerate(account_info.phantomBoxList or []):
-                base_info_list.append({"key": b.name, "value": f"{b.num}", "highlight": bid % 2 == 0})
+            for b in account_info.treasureBoxList or []:
+                base_info_list.append({"key": b.name, "value": f"{b.num}"})
+
+            for b in account_info.phantomBoxList or []:
+                base_info_list.append({"key": b.name, "value": f"{b.num}"})
 
         # 获取详细角色信息
         role_detail_info_map = await get_all_roleid_detail_info_int(uid)

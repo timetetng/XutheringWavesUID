@@ -17,7 +17,7 @@ from ..utils.at_help import ruser_id
 from ..utils.util import get_hide_uid_pref, hide_uid
 from ..utils.waves_api import waves_api
 from ..wutheringwaves_config import WutheringWavesConfig, PREFIX
-from ..utils.api.model import SkinData, AccountBaseInfo
+from ..utils.api.model import SkinData, MotorData, AccountBaseInfo
 from ..utils.render_utils import (
     PLAYWRIGHT_AVAILABLE,
     render_html,
@@ -37,6 +37,7 @@ from .draw_skin_info_pil import (
     SKIN_TEX_PATH,
     SKIN_ICON_CACHE,
     build_skin_blocks,
+    build_motor_blocks,
     draw_skin_img as draw_skin_img_pil,
 )
 
@@ -103,6 +104,15 @@ async def draw_skin_img(uid: str, ck: str, ev: Event):
             account_info = AccountBaseInfo.model_validate(account_resp.data)
 
         blocks = build_skin_blocks(skin_data)
+
+        # 科考摩托(涂装/车架/外观定制), 失败不影响服饰图鉴
+        try:
+            motor_resp = await waves_api.get_motor_data(uid, ck)
+            if motor_resp.success:
+                blocks += build_motor_blocks(MotorData.model_validate(motor_resp.data))
+        except Exception as e:
+            logger.warning(f"[鸣潮·服饰] 获取摩托失败: {e}")
+
         if not blocks:
             return f"未获取到服饰数据, 请尝试【{PREFIX}登录】"
 
@@ -143,6 +153,8 @@ async def draw_skin_img(uid: str, ck: str, ev: Event):
             "q3_bg": _local_b64("quality_3.png"),
             "q4_bg": _local_b64("quality_4.png"),
             "q5_bg": _local_b64("quality_5.png"),
+            "frame_bg": _local_b64("frame_bg.png"),
+            "frame_level": _local_b64("frame_level.png"),
             "footer_b64": get_footer_b64(footer_type="white") or "",
         }
 

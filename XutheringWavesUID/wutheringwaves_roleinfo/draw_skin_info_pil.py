@@ -14,7 +14,7 @@ from ..wutheringwaves_config import PREFIX
 from ..utils.at_help import ruser_id
 from ..utils.util import get_hide_uid_pref, hide_uid
 from ..utils.waves_api import waves_api
-from ..utils.api.model import SkinData, AccountBaseInfo
+from ..utils.api.model import SkinData, MotorData, AccountBaseInfo
 from ..utils.image import GOLD, GREY, add_footer, get_waves_bg, pic_download_from_url
 from ..utils.imagetool import draw_pic_with_ring
 from .draw_role_info_pil import draw_identity_header
@@ -102,6 +102,29 @@ def build_skin_blocks(skin_data: SkinData):
             ]),
         },
     ]
+    out = [b for b in blocks if b["items"]]
+    for b in out:
+        b.setdefault("cols", 8)
+        b.setdefault("wide", False)
+    return out
+
+
+def build_motor_blocks(motor_data: MotorData):
+    """科考摩托: 涂装 / 车架(宽图,一行两个) / 外观定制"""
+    si = motor_data.skinInfo
+
+    def items(lst):
+        # quality 降序; 同名归并相邻(贴纸 part1/2/3 一组); 同名内按 part/sort
+        return sorted(
+            [{"icon": it.pictureUrl, "name": it.name or "", "quality": _eff_quality(it.quality), "sort": it.sort or 0} for it in lst],
+            key=lambda x: (-x["quality"], x["name"], x["sort"]),
+        )
+
+    blocks = [
+        {"title": "涂装", "header": "header_motor_sticker.png", "cols": 8, "wide": False, "items": items(si.stickerList)},
+        {"title": "车架", "header": "header_motor_frame.png", "cols": 2, "wide": True, "items": items(si.frameList)},
+        {"title": "外观定制", "header": "header_motor_deco.png", "cols": 8, "wide": False, "items": items(si.decorationList)},
+    ]
     return [b for b in blocks if b["items"]]
 
 
@@ -131,6 +154,15 @@ async def draw_skin_img(uid: str, ck: str, ev: Event):
         account_info = AccountBaseInfo.model_validate(account_resp.data)
 
     blocks = build_skin_blocks(skin_data)
+
+    # 科考摩托(涂装/车架/外观定制), 失败不影响服饰图鉴
+    try:
+        motor_resp = await waves_api.get_motor_data(uid, ck)
+        if motor_resp.success:
+            blocks += build_motor_blocks(MotorData.model_validate(motor_resp.data))
+    except Exception as e:
+        logger.warning(f"[鸣潮·服饰] 获取摩托失败: {e}")
+
     if not blocks:
         return f"未获取到服饰数据, 请尝试【{PREFIX}登录】"
 
@@ -159,8 +191,8 @@ async def draw_skin_img(uid: str, ck: str, ev: Event):
 
 
 # 网格参数
-COLS = 6
-CELL = 150
+COLS = 8
+CELL = 108
 GAP = 16
 MARGIN = 50
 HEAD_Y = 300  # base_info_bg 高度
@@ -176,15 +208,24 @@ def _compose_skin_img(
     uid,
     user_pref,
 ):
-    w = MARGIN * 2 + COLS * CELL + (COLS - 1) * GAP
     grid_w = COLS * CELL + (COLS - 1) * GAP
+    w = MARGIN * 2 + grid_w
+    block_title_h = 70
+    NAME_H = 40  # 名称区高度
+
+    def _dims(block):
+        """每块的列数/格子宽高: 车架(wide)宽图矮一行两个, 其余方形一行六个"""
+        cols = block.get("cols", COLS)
+        cw = (grid_w - (cols - 1) * GAP) // cols
+        ch = round(cw * 214 / 690) if block.get("wide") else cw  # 车架对齐大背景框比例
+        return cols, cw, ch
 
     # 预算高度
-    block_title_h = 70
     h = HEAD_Y
     for b in blocks:
-        rows = (len(b["items"]) + COLS - 1) // COLS
-        h += block_title_h + rows * (CELL + 40) + 30
+        cols, _cw, ch = _dims(b)
+        rows = (len(b["items"]) + cols - 1) // cols
+        h += block_title_h + rows * (ch + NAME_H) + 30
     h += 100
 
     card_img = get_waves_bg(w, h)
@@ -211,38 +252,51 @@ def _compose_skin_img(
         bd.text((tx, 25), title, "white", waves_font_30, "lm")
         card_img.paste(bar, (MARGIN, _y), bar)
 
-    def _draw_item(_x: int, _y: int, item):
+    def _draw_item(_x: int, _y: int, item, cw: int, ch: int, wide: bool):
         quality = item.get("quality", 3)
-        # 品质底图
-        qpath = SKIN_TEX_PATH / f"quality_{quality if quality in (3, 4, 5) else 3}.png"
-        if qpath.exists():
-            bg = Image.open(qpath).convert("RGBA").resize((CELL, CELL))
+        # 底图: 车架用官方专门大背景框, 其余按品质
+        if wide:
+            bgpath = SKIN_TEX_PATH / "frame_bg.png"
         else:
-            bg = Image.new("RGBA", (CELL, CELL), (40, 44, 52, 255))
-        cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
+            bgpath = SKIN_TEX_PATH / f"quality_{quality if quality in (3, 4, 5) else 3}.png"
+        if bgpath.exists():
+            bg = Image.open(bgpath).convert("RGBA").resize((cw, ch))
+        else:
+            bg = Image.new("RGBA", (cw, ch), (40, 44, 52, 255))
+        cell = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
         cell.paste(bg, (0, 0), bg)
 
         icon_img = item.get("icon_img")
         if icon_img is not None:
-            th = CELL - 30  # 统一主体高度, 宽度自适应(过宽则居中裁切)
             ic = icon_img.convert("RGBA")
             bb = ic.getchannel("A").getbbox()  # 裁掉透明边
             if bb:
                 ic = ic.crop(bb)
-            scale = th / ic.height
-            nw, nh = max(1, round(ic.width * scale)), th
+            if wide:  # 车架宽图: 整体 contain 完整展示
+                scale = min((cw - 20) / ic.width, (ch - 20) / ic.height)
+            else:  # 方形: 统一主体高度, 宽度自适应
+                scale = (ch - 30) / ic.height
+            nw, nh = max(1, round(ic.width * scale)), max(1, round(ic.height * scale))
             ic = ic.resize((nw, nh))
-            cell.paste(ic, ((CELL - nw) // 2, (CELL - nh) // 2), ic)
+            cell.paste(ic, ((cw - nw) // 2, (ch - nh) // 2), ic)
+
+        # 车架品质长条(底部)
+        if wide:
+            flp = SKIN_TEX_PATH / "frame_level.png"
+            if flp.exists():
+                fl = Image.open(flp).convert("RGBA")
+                fh = max(1, round(fl.height * cw / fl.width))
+                cell.alpha_composite(fl.resize((cw, fh)), (0, ch - fh))
 
         # 左上角类型图标
         type_img = item.get("type_img")
         if type_img is not None:
-            t = type_img.convert("RGBA").resize((30, 30))
+            t = type_img.convert("RGBA").resize((38, 38))
             cell.paste(t, (6, 6), t)
 
         # 品质边框
         cd = ImageDraw.Draw(cell)
-        cd.rounded_rectangle([1, 1, CELL - 2, CELL - 2], radius=10, outline=QUALITY_BORDER.get(quality, GREY), width=2)
+        cd.rounded_rectangle([1, 1, cw - 2, ch - 2], radius=10, outline=QUALITY_BORDER.get(quality, GREY), width=2)
 
         card_img.paste(cell, (_x, _y), cell)
 
@@ -251,23 +305,23 @@ def _compose_skin_img(
         name_font, nm = fit_text(
             nd,
             item.get("name") or "",
-            CELL - 8,
+            cw - 8,
             (waves_font_18, waves_font_16, waves_font_14, waves_font_12),
         )
-        nd.text((_x + CELL // 2, _y + CELL + 18), nm, "white", name_font, "mm")
+        nd.text((_x + cw // 2, _y + ch + 18), nm, "white", name_font, "mm")
 
     y = HEAD_Y
     for b in blocks:
         _draw_title(y, b["title"], b.get("header_img"))
         y += block_title_h
+        cols, cw, ch = _dims(b)
+        wide = b.get("wide", False)
         for idx, item in enumerate(b["items"]):
-            col = idx % COLS
-            row = idx // COLS
-            _x = MARGIN + col * (CELL + GAP)
-            _y = y + row * (CELL + 40)
-            _draw_item(_x, _y, item)
-        rows = (len(b["items"]) + COLS - 1) // COLS
-        y += rows * (CELL + 40) + 30
+            _x = MARGIN + (idx % cols) * (cw + GAP)
+            _y = y + (idx // cols) * (ch + NAME_H)
+            _draw_item(_x, _y, item, cw, ch, wide)
+        rows = (len(b["items"]) + cols - 1) // cols
+        y += rows * (ch + NAME_H) + 30
 
     card_img = add_footer(card_img, 600, 20)
     return card_img

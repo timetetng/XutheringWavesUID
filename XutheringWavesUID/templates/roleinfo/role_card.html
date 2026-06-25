@@ -569,8 +569,9 @@
                 {% endif %}
             </div>
             <div class="base-info-grid">
+                {# highlight 按格子位置棋盘交错(奇偶行错开), 与哪些项请求成功无关, 避免缺项错位 #}
                 {% for item in base_info_list %}
-                <div class="info-item{% if item.highlight %} highlight{% endif %}">
+                <div class="info-item{% if (loop.index0 // 6 + loop.index0 % 6) % 2 == 1 %} highlight{% endif %}">
                     <div class="info-key">{{ item.key }}</div>
                     <div class="info-value">{{ item.value }}</div>
                 </div>
