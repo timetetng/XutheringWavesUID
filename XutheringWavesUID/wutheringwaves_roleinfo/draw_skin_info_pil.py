@@ -291,7 +291,8 @@ def _compose_skin_img(
         # 左上角类型图标
         type_img = item.get("type_img")
         if type_img is not None:
-            t = type_img.convert("RGBA").resize((38, 38))
+            t = type_img.convert("RGBA").resize((32, 32))
+            t.putalpha(t.getchannel("A").point(lambda a: int(a * 0.82)))
             cell.paste(t, (6, 6), t)
 
         # 品质边框
