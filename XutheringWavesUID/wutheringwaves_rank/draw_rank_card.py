@@ -508,7 +508,7 @@ async def draw_rank_img(bot: Bot, ev: Event, char: str, rank_type: str) -> Union
     title_name = f"{char_name}{rank_type}群排行"
     title_draw.text((140, 265), f"{title_name}", "black", waves_font_30, "lm")
     date_text = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    title_draw.text((140, 300), date_text, GREY, waves_font_20, "lm")
+    title_draw.text((110, 205), date_text, GREY, waves_font_20, "lm")
 
     # 备注
     rank_row_title = "入榜条件"
