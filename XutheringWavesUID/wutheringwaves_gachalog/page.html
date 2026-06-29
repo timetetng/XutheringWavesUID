@@ -243,16 +243,17 @@ body::after {
 .user-uid::before { content: "UID/"; color: var(--text-low); margin-right: 4px; }
 .stats-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: baseline;
   margin-top: 14px;
 }
 .stat-cell {
   display: flex;
   align-items: baseline;
-  gap: 5px;
-  padding: 0 13px;
+  gap: clamp(2px, 0.8vw, 5px);
+  padding: 0 clamp(2px, 1.1vw, 13px);
   position: relative;
+  min-width: 0;
 }
 .stat-cell:first-child { padding-left: 2px; }
 .stat-cell:not(:last-child)::after {
@@ -263,14 +264,14 @@ body::after {
   background: var(--line);
 }
 .stat-cell .lbl {
-  font-size: 10px;
+  font-size: clamp(7px, 1.9vw, 10px);
   color: var(--text-dim);
   letter-spacing: .14em;
   white-space: nowrap;
 }
 .stat-cell .num {
   font-family: var(--display);
-  font-size: 21px;
+  font-size: clamp(11px, 3.7vw, 21px);
   font-weight: 700;
   color: var(--gold-soft);
   letter-spacing: .02em;
@@ -278,12 +279,13 @@ body::after {
 }
 .timestamp-line {
   display: flex; justify-content: space-between; align-items: center;
-  flex-wrap: wrap; row-gap: 4px; column-gap: 12px;
+  flex-wrap: nowrap; column-gap: clamp(6px, 2vw, 12px);
   margin-top: 12px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: clamp(6px, 2.2vw, 10px);
   color: var(--text-low);
-  letter-spacing: .08em;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
 .timestamp-line .pulse {
   width: 6px; height: 6px; border-radius: 50%;
@@ -295,10 +297,7 @@ body::after {
   0%, 100% { opacity: .4; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.3); }
 }
-/* 窄屏 (手机竖屏) 时改为竖排, 避免单行被时间戳挤到换行 */
-@media (max-width: 480px) {
-  .timestamp-line { flex-direction: column; align-items: flex-start; row-gap: 4px; }
-}
+/* 时间戳改为字号自适应压成单行, 不再竖排 */
 
 /* 池标题 (仅在 export-mode 渲染时可见; 普通模式下由 tab-strip 提供导航) */
 .pool-title { display: none; }
