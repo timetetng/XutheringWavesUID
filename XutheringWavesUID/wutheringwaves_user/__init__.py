@@ -45,7 +45,24 @@ msg_notify = [
 ]
 
 
-@waves_add_ck.on_command(("添加CK", "添加ck", "添加Token", "添加token", "添加TOKEN", "token登录", "Token登录"), block=True)
+@waves_add_ck.on_command(
+    (
+        "添加CK",
+        "添加ck",
+        "添加Token",
+        "添加token",
+        "添加TOKEN",
+        "token登录",
+        "Token登录",
+        "token登陆",
+        "Token登陆",
+        "token登入",
+        "Token登入",
+        "token登龙",
+        "Token登龙",
+    ),
+    block=True,
+)
 async def send_waves_add_ck_msg(bot: Bot, ev: Event):
     at_sender = True if ev.group_id else False
     text = ev.text.strip()
