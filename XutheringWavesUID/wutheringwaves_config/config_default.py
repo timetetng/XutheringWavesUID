@@ -204,7 +204,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
     ),
     "RefreshSingleCharBehavior": GsStrConfig(
         "刷新单角色面板发送逻辑",
-        "控制刷新单个角色面板后的行为：refresh_only(仅刷新)、refresh_and_send(刷新并合并发送)、refresh_and_send_separately(刷新并分别发送)、concatenate(刷新小图与面板拼一张发送)、concat_diff(刷新成功时不发刷新小图, 改发刷新前后两张面板横向拼接的对比图; 数据未更新则同 concatenate)",
+        "控制刷新单个角色面板后的行为：refresh_only(仅刷新)、refresh_and_send(刷新并合并发送)、refresh_and_send_separately(刷新并分别发送)、concatenate(刷新小图与面板拼一张发送)、concat_diff(刷新成功时不发刷新小图, 改发刷新前后两张面板横向拼接的对比图; 数据未更新则同 concatenate)、diff(只发送刷新前后的声骸diff对比图)",
         "concat_diff",
         options=[
             "refresh_only",
@@ -212,6 +212,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
             "refresh_and_send_separately",
             "concatenate",
             "concat_diff",
+            "diff",
         ],
     ),
     "WavesUploadAudit": GsBoolConfig(

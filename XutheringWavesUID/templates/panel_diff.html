@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>Panel Diff</title>
+<style>
+@import url('{{ font_css_url }}');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --gold: #d4b163; --gold-soft: rgba(212,177,99,0.3);
+    --line: rgba(255,255,255,0.08); --text-main: #f3f3f3; --text-sub: #9aa0aa;
+    --green: #5fd17a; --green-soft: rgba(95,209,122,0.15);
+    --red: #e06060; --red-soft: rgba(224,96,96,0.2);
+}
+
+body { background: #0a0c10; font-family: 'Source Han Sans CN', 'Noto Sans CJK', sans-serif; color: var(--text-main); width: 680px; display: flex; justify-content: center; }
+.container { padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; position: relative; z-index: 1; }
+.bg-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg-layer img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bg-layer::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% -10%, rgba(212,177,99,0.18), transparent 55%), linear-gradient(180deg, rgba(10,12,16,0.30) 0%, rgba(10,12,16,0.65) 100%); }
+
+/* User Card */
+.user-card { display: flex; align-items: center; gap: 16px; padding: 12px 18px; background: linear-gradient(135deg, rgba(212,177,99,0.10), transparent 40%), linear-gradient(180deg, rgba(28,31,38,0.92), rgba(15,17,21,0.95)); border: 1px solid var(--line); border-top: 1px solid rgba(255,255,255,0.2); border-radius: 6px; position: relative; }
+.user-card::before { content: ""; position: absolute; top: 0; left: 18px; width: 56px; height: 3px; background: var(--gold); box-shadow: 0 0 12px var(--gold-soft); }
+.avatar { width: 100%; height: 100%; border-radius: 50%; border: 2px solid #2a2e35; background: linear-gradient(135deg, #2a2040, #1a1d23); display: block; }
+.avatar-wrap { width: 60px; height: 60px; flex-shrink: 0; }
+.user-meta { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.user-name { font-size: 34px; font-weight: 800; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.user-uid { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--gold); background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 3px; border: 1px solid rgba(212,177,99,0.18); font-weight: 700; }
+
+/* Score compact */
+.sc-section { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+.sc-row { display: flex; align-items: center; gap: 8px; }
+.sc-label { font-size: 14px; color: var(--text-sub); font-weight: 700; min-width: 32px; letter-spacing: 1px; }
+.sc-vb { font-family: 'Oswald', sans-serif; font-size: 20px; color: rgba(255,255,255,0.35); text-decoration: line-through; min-width: 50px; }
+.sc-va { font-family: 'Oswald', sans-serif; font-size: 26px; font-weight: 700; min-width: 50px; }
+.sc-va.up { color: var(--green); } .sc-va.down { color: var(--red); }
+.sc-sep { font-size: 16px; color: rgba(255,255,255,0.25); margin: 0 2px; }
+.sc-d { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; margin-left: auto; }
+.sc-d.up { color: var(--green); } .sc-d.down { color: var(--red); }
+
+/* Stat changes */
+.section-label { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-sub); font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.section-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+
+.stat-list { display: flex; flex-direction: column; gap: 4px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; }
+.stat-row { display: flex; align-items: center; padding: 5px 8px; border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid var(--gold); border-radius: 4px; }
+.stat-row.up { border-left-color: var(--green); background: linear-gradient(90deg, var(--green-soft), transparent); }
+.stat-row.down { border-left-color: var(--red); background: linear-gradient(90deg, var(--red-soft), transparent); }
+.stat-icon { width: 20px; height: 20px; margin-right: 6px; }
+.stat-name { flex: 1; font-size: 14px; color: #ececec; font-weight: 600; }
+.stat-old { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: rgba(255,255,255,0.3); text-decoration: line-through; min-width: 50px; text-align: right; margin-right: 6px; }
+.stat-arrow { font-size: 11px; color: rgba(255,255,255,0.2); margin: 0 3px; }
+.stat-new { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; min-width: 50px; text-align: right; margin-right: 6px; }
+.stat-new.up { color: var(--green); } .stat-new.down { color: var(--red); }
+.stat-d { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; min-width: 50px; text-align: right; }
+.stat-d.up { color: var(--green); } .stat-d.down { color: var(--red); }
+
+/* Echo cards */
+.echo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.echo-card { background: rgba(20,22,28,0.95); border: 1px solid rgba(255,255,255,0.1); border-top: 2px solid var(--gold); border-radius: 8px; overflow: hidden; }
+.echo-card.swap { border-top-color: #f59f00; }
+.echo-phantom-header { display: flex; align-items: center; gap: 6px; padding: 8px 10px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.phantom-side { flex: 1; display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.phantom-side.solo { flex: 1 1 100%; }
+.phantom-icon { width: 38px; height: 38px; background: linear-gradient(135deg, rgba(60,50,20,0.8), rgba(30,25,10,1)); border: 1.5px solid rgba(212,177,99,0.3); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--gold); flex-shrink: 0; font-weight: 800; }
+.phantom-icon-img { width: 38px; height: 38px; border: 1.5px solid rgba(212,177,99,0.3); border-radius: 6px; flex-shrink: 0; display: block; object-fit: cover; }
+.phantom-name { font-size: 10px; font-weight: 600; color: var(--gold); word-break: break-all; line-height: 1.2; }
+.phantom-name.old-name { color: rgba(255,255,255,0.4); text-decoration: line-through; }
+.phantom-score { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 4px; }
+.phantom-score .grade-icon-img { width: 20px; height: 20px; border-radius: 3px; }
+.phantom-arrow-side { flex-shrink: 0; display: flex; align-items: center; padding: 0 2px; align-self: center; }
+.phantom-arrow { font-size: 18px; color: rgba(255,255,255,0.5); line-height: 1; }
+
+/* Diff lines */
+.echo-diff-body { padding: 8px 14px 12px; display: flex; flex-direction: column; gap: 3px; }
+.diff-line { display: flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.diff-line.removed { background: rgba(224,96,96,0.12); }
+.diff-line.added { background: rgba(95,209,122,0.12); }
+.diff-line.changed_main { background: rgba(212,177,99,0.08); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 2px; padding-top: 5px; }
+.diff-line.changed_sub { background: rgba(212,177,99,0.06); }
+.diff-sign { font-weight: 800; font-size: 13px; width: 14px; text-align: center; flex-shrink: 0; }
+.diff-line.removed .diff-sign { color: var(--red); }
+.diff-line.added .diff-sign { color: var(--green); }
+.changed_main .diff-sign, .changed_sub .diff-sign { color: #f59f00; }
+.diff-icon { width: 14px; height: 14px; flex-shrink: 0; border-radius: 2px; }
+.diff-name { color: #d0d0d0; font-weight: 600; min-width: 54px; }
+.diff-val { font-weight: 600; }
+.diff-val.strikethrough { color: rgba(255,255,255,0.35); text-decoration: line-through; }
+.diff-val.old { color: rgba(255,255,255,0.35); text-decoration: line-through; font-size: 11px; }
+.diff-arrow { font-size: 10px; color: rgba(255,255,255,0.25); margin: 0 3px; }
+.diff-val.new { font-weight: 700; font-size: 13px; }
+.changed_sub .diff-val.new.up, .changed_main .diff-val.new.up { color: var(--green); }
+.changed_sub .diff-val.new.down, .changed_main .diff-val.new.down { color: var(--red); }
+.diff-delta { margin-left: auto; font-size: 11px; font-weight: 700; }
+.diff-delta.up { color: var(--green); } .diff-delta.down { color: var(--red); }
+.diff-prop-old { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(255,255,255,0.25); text-decoration: line-through; margin-right: 2px; }
+
+.swap-badge { position: absolute; top: -6px; right: 8px; background: #f59f00; color: #000; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.5px; }
+
+.footer { margin-top: -10px; margin-bottom: -20px; text-align: center; width: 100%; opacity: 0.6; }
+.footer img { max-width: 100%; height: 18px; }
+</style>
+</head>
+<body>
+{% if bg_url %}<div class="bg-layer"><img src="{{ bg_url }}"></div>{% endif %}
+<div class="container">
+
+<div class="user-card">
+    <div class="avatar-wrap">
+        {% if avatar_url %}<img src="{{ avatar_url }}" class="avatar">{% else %}<div class="avatar"></div>{% endif %}
+    </div>
+    <div class="user-meta"><div><div class="user-name">{{ user_name }}</div><div class="user-uid">UID {{ user_id }}</div></div></div>
+</div>
+
+<div class="sc-section">
+    {% for score in scores %}
+    <div class="sc-row">
+        <span class="sc-label">{{ score.label }}</span>
+        <span class="sc-vb">{{ "%.1f"|format(score.before) }}</span>
+        {{ score.grade_icon_before | safe }}
+        <span class="sc-sep">→</span>
+        <span class="sc-va {{ 'up' if score.delta > 0 else ('down' if score.delta < 0 else '') }}">{{ "%.1f"|format(score.after) }}</span>
+        {{ score.grade_icon_after | safe }}
+        <span class="sc-d {{ 'up' if score.delta > 0 else ('down' if score.delta < 0 else '') }}">{{ "%+.1f"|format(score.delta) }}</span>
+    </div>
+    {% endfor %}
+</div>
+
+{% if stat_changes %}
+<div>
+    <div class="section-label" style="margin-bottom:8px;">{{ stat_label }}</div>
+    <div class="stat-list">
+        {% for s in stat_changes %}
+        <div class="stat-row {{ 'up' if s.delta > 0 else ('down' if s.delta < 0 else '') }}">
+            {% if s.icon %}<img class="stat-icon" src="{{ s.icon }}">{% endif %}
+            <span class="stat-name">{{ s.name }}</span>
+            <span class="stat-old">{{ s.old }}</span>
+            <span class="stat-arrow">→</span>
+            <span class="stat-new {{ 'up' if s.delta > 0 else ('down' if s.delta < 0 else '') }}">{{ s.new }}</span>
+            <span class="stat-d {{ 'up' if s.delta > 0 else ('down' if s.delta < 0 else '') }}">{{ s.ds }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if phantom_changes %}
+<div>
+    <div class="section-label" style="margin-bottom:8px;">{{ phantom_label }}</div>
+    <div class="echo-grid">
+        {% for pc in phantom_changes %}
+        <div class="echo-card {{ 'swap' if pc.is_swap else '' }}">
+        <div class="echo-phantom-header">
+            {% if pc.old_is_empty %}
+            <div class="phantom-side solo">
+                {% if pc.new_icon %}<img class="phantom-icon-img" src="{{ pc.new_icon }}">{% else %}<div class="phantom-icon">?</div>{% endif %}
+                <div class="phantom-info">
+                    <div class="phantom-name">{{ pc.new_name }}</div>
+                    <div class="phantom-score">{{ pc.new_score | round(1) }}{% if pc.new_grade_icon %}{{ pc.new_grade_icon | safe }}{% endif %}</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="phantom-side">
+                {% if pc.old_icon %}<img class="phantom-icon-img" src="{{ pc.old_icon }}">{% else %}<div class="phantom-icon">?</div>{% endif %}
+                <div class="phantom-info">
+                    <div class="phantom-name {{ 'old-name' if pc.is_swap else '' }}">{{ pc.old_name }}</div>
+                    <div class="phantom-score">{{ pc.old_score | round(1) }}{% if pc.old_grade_icon %}{{ pc.old_grade_icon | safe }}{% endif %}</div>
+                </div>
+            </div>
+            <div class="phantom-arrow-side"><span class="phantom-arrow">→</span></div>
+            <div class="phantom-side">
+                {% if pc.new_icon %}<img class="phantom-icon-img" src="{{ pc.new_icon }}">{% else %}<div class="phantom-icon">?</div>{% endif %}
+                <div class="phantom-info">
+                    <div class="phantom-name">{{ pc.new_name }}</div>
+                    <div class="phantom-score">{{ pc.new_score | round(1) }}{% if pc.new_grade_icon %}{{ pc.new_grade_icon | safe }}{% endif %}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="echo-diff-body">
+            {% for line in pc.lines %}
+            {% if line.type == 'removed' %}
+            <div class="diff-line removed"><span class="diff-sign">-</span>{% if line.icon %}<img class="diff-icon" src="{{ line.icon }}">{% endif %}<span class="diff-name">{{ line.name }}</span><span class="diff-val strikethrough">{{ line.old }}</span></div>
+            {% elif line.type == 'added' %}
+            <div class="diff-line added"><span class="diff-sign">+</span>{% if line.icon %}<img class="diff-icon" src="{{ line.icon }}">{% endif %}<span class="diff-name">{{ line.name }}</span><span class="diff-val">{{ line.new }}</span></div>
+            {% elif line.type in ('changed_main', 'changed_sub') %}
+            <div class="diff-line {{ line.type }}"><span class="diff-sign">±</span>{% if line.icon %}<img class="diff-icon" src="{{ line.icon }}">{% endif %}<span class="diff-name">{{ line.name }}</span><span class="diff-val old">{{ line.old }}</span><span class="diff-arrow">→</span><span class="diff-val new {{ line.cls }}">{{ line.new }}</span><span class="diff-delta {{ line.cls }}">{{ line.ds }}</span></div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="footer">
+    {% if footer_b64 %}
+    <img src="{{ footer_b64 }}" alt="Footer">
+    {% endif %}
+</div>
+</div>
+</body>
+</html>

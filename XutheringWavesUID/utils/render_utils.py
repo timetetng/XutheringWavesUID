@@ -330,7 +330,7 @@ async def render_html(waves_templates, template_name: str, context: dict) -> Opt
             t_layout = time.perf_counter() - t0
 
             t0 = time.perf_counter()
-            screenshot = await container.screenshot(type='jpeg', quality=90)
+            screenshot = await container.screenshot(type='png')
             t_screenshot = time.perf_counter() - t0
 
             render_time = time.time() - local_start_time
