@@ -153,6 +153,7 @@ async def _cloud_login_web(bot: Bot, ev: Event, url: str):
 
     await send_login(bot, ev, f"{url}/waves/i/{user_token}", refresh_panel=False)
 
+    uid = ""
     try:
         async with timeout(180):
             while True:
@@ -171,16 +172,7 @@ async def _cloud_login_web(bot: Bot, ev: Event, url: str):
                             f"{GAME_TITLE} 登录完成但数据异常，请重试",
                             at_sender=at_sender,
                         )
-                    record_id = await fetch_cloud_record_id(ev.user_id, ev.bot_id, uid)
-                    if not record_id:
-                        user_pref = await get_hide_uid_pref(uid, ev.user_id, ev.bot_id)
-                        return await bot.send(
-                            (" " if at_sender else "")
-                            + f"{GAME_TITLE} 云登录成功，UID{hide_uid(uid, user_pref)} 已记录\n"
-                            + "抽卡记录拉取失败",
-                            at_sender=at_sender,
-                        )
-                    return await _login_then_update(bot, ev, uid, record_id)
+                    break
 
                 if phase == "failed":
                     err = state.get("error_msg") or "云登录失败"
@@ -195,12 +187,26 @@ async def _cloud_login_web(bot: Bot, ev: Event, url: str):
         return await bot.send("登录超时!", at_sender=at_sender)
     except Exception as e:
         logger.exception(f"[鸣潮·云登录] 异常: {e}")
+        return
+
+    record_id = await fetch_cloud_record_id(ev.user_id, ev.bot_id, uid)
+    if not record_id:
+        user_pref = await get_hide_uid_pref(uid, ev.user_id, ev.bot_id)
+        return await bot.send(
+            (" " if at_sender else "")
+            + f"{GAME_TITLE} 云登录成功，UID{hide_uid(uid, user_pref)} 已记录\n"
+            + "抽卡记录拉取失败",
+            at_sender=at_sender,
+        )
+    return await _login_then_update(bot, ev, uid, record_id)
 
 
 async def _cloud_login_other(bot: Bot, ev: Event, url: str):
     # 外置 ww-login 处理网页与请求链，bot 仅领 token、转发链接、轮询结果后本地落库
     at_sender = True if ev.group_id else False
     auth = {"bot_id": ev.bot_id, "user_id": ev.user_id}
+    uid = ""
+    login_info: Dict[str, Any] = {}
 
     async with httpx.AsyncClient() as client:
         try:
@@ -272,31 +278,29 @@ async def _cloud_login_other(bot: Bot, ev: Event, url: str):
                             f"{GAME_TITLE} 服务返回数据异常，请稍后重试",
                             at_sender=at_sender,
                         )
-
-                    try:
-                        await _persist_and_bind(
-                            ev.user_id, ev.bot_id, ev.group_id, uid, login_info
-                        )
-                    except Exception as e:
-                        logger.exception("[鸣潮·云登录] 外置存表/绑定失败")
-                        return await bot.send(
-                            f"{GAME_TITLE} 绑定失败：{e}", at_sender=at_sender
-                        )
-
-                    record_id = await fetch_cloud_record_id(ev.user_id, ev.bot_id, uid)
-                    if not record_id:
-                        user_pref = await get_hide_uid_pref(uid, ev.user_id, ev.bot_id)
-                        return await bot.send(
-                            (" " if at_sender else "")
-                            + f"{GAME_TITLE} 云登录成功，UID{hide_uid(uid, user_pref)} 已记录\n"
-                            + "抽卡记录拉取失败",
-                            at_sender=at_sender,
-                        )
-                    return await _login_then_update(bot, ev, uid, record_id)
+                    break
         except asyncio.TimeoutError:
             return await bot.send("登录超时!", at_sender=at_sender)
         except Exception as e:
             logger.exception(f"[鸣潮·云登录] 外置异常: {e}")
+            return
+
+    try:
+        await _persist_and_bind(ev.user_id, ev.bot_id, ev.group_id, uid, login_info)
+    except Exception as e:
+        logger.exception("[鸣潮·云登录] 外置存表/绑定失败")
+        return await bot.send(f"{GAME_TITLE} 绑定失败：{e}", at_sender=at_sender)
+
+    record_id = await fetch_cloud_record_id(ev.user_id, ev.bot_id, uid)
+    if not record_id:
+        user_pref = await get_hide_uid_pref(uid, ev.user_id, ev.bot_id)
+        return await bot.send(
+            (" " if at_sender else "")
+            + f"{GAME_TITLE} 云登录成功，UID{hide_uid(uid, user_pref)} 已记录\n"
+            + "抽卡记录拉取失败",
+            at_sender=at_sender,
+        )
+    return await _login_then_update(bot, ev, uid, record_id)
 
 
 # ===== 网页渲染 ===============================================
