@@ -253,64 +253,44 @@ WEAPON_RESONLEVEL_COLOR = {
 }
 
 
-# 排行卡 bot 背景: title_bg 下 T_TitleCardBg_<Name>.png, 端饰 CardDecorate{Left,Right}
+# 排行卡 bot 背景: title_bg 下 T_TitleCardBg_<Name>.png
 _TITLE_BG_PREFIX = "T_TitleCardBg_"
-_DECO_LEFT_PREFIX = "T_DecorateLeft_"
-_DECO_RIGHT_PREFIX = "T_DecorateRight_"
-_DECO_LEFT_DIR = TITLE_BG_PATH / "CardDecorateLeft"
-_DECO_RIGHT_DIR = TITLE_BG_PATH / "CardDecorateRight"
 _RESERVED_BG = "weixin"  # 小程序专属, 普通用户禁用, 随机兜底也排除
+# 标准背景图在 388x72 内的实际有效区域(量自常规图 L7/T9/R7/B8)。固定裁剪而非按各图
+# 透明边裁: 部分图有溢出有效区的特效, 按透明边裁会得到不一致大小。比例化兼容非标尺寸。
 _title_bg_index_cache: Optional[dict] = None
-_deco_left_index_cache: Optional[dict] = None
-_deco_right_index_cache: Optional[dict] = None
 _title_bg_img_cache: dict = {}
 
 
-def _scan_index(directory, prefix: str) -> dict:
-    """{小写名: 路径} 索引 (前缀命名的 png)。"""
-    index = {}
-    try:
-        for f in os.listdir(directory):
-            if not f.startswith(prefix) or not f.lower().endswith(".png"):
-                continue
-            index[f[len(prefix):-4].lower()] = directory / f
-    except FileNotFoundError:
-        pass
-    return index
-
-
 def _title_bg_index() -> dict:
-    """空目录不缓存, 以便资源后到位时重扫。"""
+    """{小写名: 路径} 索引。空目录不缓存, 以便资源后到位时重扫。"""
     global _title_bg_index_cache
     if _title_bg_index_cache:
         return _title_bg_index_cache
-    index = _scan_index(TITLE_BG_PATH, _TITLE_BG_PREFIX)
+    index = {}
+    try:
+        for f in os.listdir(TITLE_BG_PATH):
+            if not f.startswith(_TITLE_BG_PREFIX) or not f.lower().endswith(".png"):
+                continue
+            index[f[len(_TITLE_BG_PREFIX):-4].lower()] = TITLE_BG_PATH / f
+    except FileNotFoundError:
+        pass
     if index:
         _title_bg_index_cache = index
     return index
 
 
-def _deco_left_index() -> dict:
-    global _deco_left_index_cache
-    if _deco_left_index_cache:
-        return _deco_left_index_cache
-    index = _scan_index(_DECO_LEFT_DIR, _DECO_LEFT_PREFIX)
-    if index:
-        _deco_left_index_cache = index
-    return index
-
-
-def _deco_right_index() -> dict:
-    global _deco_right_index_cache
-    if _deco_right_index_cache:
-        return _deco_right_index_cache
-    index = _scan_index(_DECO_RIGHT_DIR, _DECO_RIGHT_PREFIX)
-    if index:
-        _deco_right_index_cache = index
-    return index
-
-
-def _load_title_img(path) -> Optional[Image.Image]:
+def get_bot_bg(background: str) -> Optional[Image.Image]:
+    """bot 背景: 按名取背景图(大小写无关); 未指定/未命中则随机(排除 weixin); 无图返回 None。"""
+    index = _title_bg_index()
+    if not index:
+        return None
+    path = index.get((background or "").strip().lower())
+    if path is None:
+        candidates = [p for n, p in index.items() if n != _RESERVED_BG]
+        if not candidates:
+            return None
+        path = random.choice(candidates)
     key = str(path)
     img = _title_bg_img_cache.get(key)
     if img is None:
@@ -318,42 +298,9 @@ def _load_title_img(path) -> Optional[Image.Image]:
             img = Image.open(path).convert("RGBA")
         except Exception:
             return None
+        # 不裁剪, 返回整图由调用方直接 resize, 兼容异形边缘的背景
         _title_bg_img_cache[key] = img
     return img
-
-
-def _resolve_bg_name(background: str) -> Optional[str]:
-    """解析背景名(大小写无关): 命中则用之, 未指定/未命中则随机(排除 weixin)。无图返回 None。"""
-    index = _title_bg_index()
-    if not index:
-        return None
-    key = (background or "").strip().lower()
-    if key in index:
-        return key
-    candidates = [n for n in index if n != _RESERVED_BG]
-    return random.choice(candidates) if candidates else None
-
-
-def get_bot_bg(background: str) -> Optional[Image.Image]:
-    """bot 背景底板: 按名取图(大小写无关); 未指定/未命中则随机(排除 weixin); 无图返回 None。"""
-    name = _resolve_bg_name(background)
-    if name is None:
-        return None
-    return _load_title_img(_title_bg_index()[name])
-
-
-def get_bot_title_assets(background: str):
-    """返回 (底板, 左端饰, 右端饰), 三者匹配同一背景名(随机兜底也一致)。
-    底板缺失返回 (None, None, None); 对应角色无端饰图时左/右为 None。"""
-    name = _resolve_bg_name(background)
-    if name is None:
-        return None, None, None
-    plate = _load_title_img(_title_bg_index()[name])
-    lpath = _deco_left_index().get(name)
-    rpath = _deco_right_index().get(name)
-    left = _load_title_img(lpath) if lpath else None
-    right = _load_title_img(rpath) if rpath else None
-    return plate, left, right
 
 
 def _random_image_from_dir(directory: str) -> Optional[str]:
