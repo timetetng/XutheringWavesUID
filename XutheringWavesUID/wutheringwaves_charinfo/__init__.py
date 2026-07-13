@@ -638,43 +638,39 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
 
     if refresh_behavior == "diff":
 
-        if not _old_char_diff:
-            # ponytail: 新角色无旧数据, 跳过diff直接发面板图
+        async def _load_char_from_raw(raw_data, char_id_val):
+            for item in raw_data or []:
+                if int(item.get("role", {}).get("roleId", 0)) == char_id_val:
+                    return item
+            return None
+
+        async def _send_panel_only(tip_msg=None):
             _panel_im = await draw_char_detail_img(ev, uid, char, user_id, None, need_convert_img=False)
             if isinstance(_panel_im, Image.Image):
                 await bot.send(_append_advice(ev, _with_tip(MessageSegment.image(await convert_img(_panel_im)), tip)))
             elif isinstance(_panel_im, str):
                 await bot.send(_with_tip([refresh_seg, _panel_im], tip))
             else:
-                await bot.send(_with_tip(f"[鸣潮] 未找到角色【{char}】的旧面板数据, 已跳过diff", tip))
-            return
+                await bot.send(_with_tip(tip_msg or f"[鸣潮] 未找到角色【{char}】的旧面板数据, 已跳过diff", tip))
+
+        if not _old_char_diff:
+            return await _send_panel_only()
 
         _char_id_val = int(char_id) if char_id and char_id.isdigit() else 0
-
-        _new_char = None
         try:
-            _raw_path = PLAYER_PATH / uid / "rawData.json"
-            _new_raw = await read_player_json(_raw_path)
-            if _new_raw:
-                for _item in _new_raw:
-                    if int(_item.get("role", {}).get("roleId", 0)) == _char_id_val:
-                        _new_char = _item
-                        break
+            _new_char = await _load_char_from_raw(
+                await read_player_json(PLAYER_PATH / uid / "rawData.json"), _char_id_val
+            )
         except Exception as _e:
             logger.warning(f"[鸣潮·面板diff] 读取新数据失败: {_e}")
+            _new_char = None
 
         if _new_char is None:
             return await bot.send(_with_tip(f"[鸣潮] 刷新后未找到角色【{char}】数据", tip))
 
-        _old_scores = compute_panel_score(_old_char_diff)
-        _new_scores = compute_panel_score(_new_char)
-
-        _panel_b = _old_scores["panel"]
-        _panel_a = _new_scores["panel"]
-        _phant_b = _old_scores["phantom"]
-        _phant_a = _new_scores["phantom"]
-
         try:
+            _old_scores = compute_panel_score(_old_char_diff)
+            _new_scores = compute_panel_score(_new_char)
             _diff_data = compute_panel_diff(
                 _old_char_diff, _new_char,
                 _old_scores.get("phantom_slot_scores", {}),
@@ -684,60 +680,39 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
             logger.exception(f"[鸣潮·面板diff] 计算diff失败: {_e}")
             return await bot.send(_with_tip(f"[鸣潮] 计算面板diff失败: {_e}", tip))
 
-        # 获取玩家信息 (名字/头像)
+        # 玩家信息
         _user_name = hide_uid(uid, user_pref='off')
-        _ck = None
         try:
             from .base_info_cache import load_account_context
-            _account_info, _ck, _ = await load_account_context(uid, user_id, ev.bot_id)
-            if isinstance(_account_info, str):
-                logger.warning(f"[鸣潮·面板diff] 获取账号信息失败: {_account_info}")
-            elif _account_info and getattr(_account_info, 'name', None):
+            _account_info, _, _ = await load_account_context(uid, user_id, ev.bot_id)
+            if _account_info and not isinstance(_account_info, str) and getattr(_account_info, 'name', None):
                 _user_name = _account_info.name
         except Exception as _e:
             logger.warning(f"[鸣潮·面板diff] 获取玩家名失败: {_e}")
 
         _avatar_b64 = ""
         try:
-            _avatar = await get_event_avatar(ev)
-            _avatar_b64 = pil_to_b64(_avatar, quality=75)
+            _avatar_b64 = pil_to_b64(await get_event_avatar(ev), quality=75)
         except Exception as _e:
             logger.warning(f"[鸣潮·面板diff] 获取头像失败: {_e}")
 
-        # 先算 panel 评分 (draw_char_detail_img 内部会计算)
-        _panel_im = await draw_char_detail_img(ev, uid, char, user_id, None, need_convert_img=False)
+        # 面板图
         _panel_bytes = None
+        _panel_im = await draw_char_detail_img(ev, uid, char, user_id, None, need_convert_img=False)
         if isinstance(_panel_im, Image.Image):
             _panel_bytes = await convert_img(_panel_im)
         elif isinstance(_panel_im, bytes):
             _panel_bytes = _panel_im
 
-        # 再计算 diff 评分 (此时 calc engine 已就绪)
-        _old_scores = compute_panel_score(_old_char_diff)
-        _new_scores = compute_panel_score(_new_char)
-
-        _panel_b = _old_scores["panel"]
-        _panel_a = _new_scores["panel"]
-        _phant_b = _old_scores["phantom"]
-        _phant_a = _new_scores["phantom"]
-
         _scores = [
-            {
-                "label": "综合",
-                "before": _panel_b,
-                "after": _panel_a,
-                "delta": round(_panel_a - _panel_b, 1),
-                "grade_icon_before": score_icon_url(get_panel_score_grade(_panel_b), 40),
-                "grade_icon_after": score_icon_url(get_panel_score_grade(_panel_a), 40),
-            },
-            {
-                 "label": "声骸",
-                "before": _phant_b,
-                "after": _phant_a,
-                "delta": round(_phant_a - _phant_b, 1),
-                "grade_icon_before": score_icon_url(get_phantom_total_grade(_phant_b), 40),
-                "grade_icon_after": score_icon_url(get_phantom_total_grade(_phant_a), 40),
-            },
+            {"label": "综合", "before": _old_scores["panel"], "after": _new_scores["panel"],
+             "delta": round(_new_scores["panel"] - _old_scores["panel"], 1),
+             "grade_icon_before": score_icon_url(get_panel_score_grade(_old_scores["panel"]), 40),
+             "grade_icon_after": score_icon_url(get_panel_score_grade(_new_scores["panel"]), 40)},
+            {"label": "声骸", "before": _old_scores["phantom"], "after": _new_scores["phantom"],
+             "delta": round(_new_scores["phantom"] - _old_scores["phantom"], 1),
+             "grade_icon_before": score_icon_url(get_phantom_total_grade(_old_scores["phantom"]), 40),
+             "grade_icon_after": score_icon_url(get_phantom_total_grade(_new_scores["phantom"]), 40)},
         ]
 
         _context = {
@@ -756,9 +731,9 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
         try:
             _diff_img = await render_html(waves_templates, "panel_diff.html", _context)
             if _diff_img:
-                _diff_seg = MessageSegment.image(_diff_img)
-                _panel_seg = MessageSegment.image(_panel_bytes) if _panel_bytes else None
-                _msg = [_diff_seg, _panel_seg] if _panel_seg else [_diff_seg]
+                _msg = [MessageSegment.image(_diff_img)]
+                if _panel_bytes:
+                    _msg.append(MessageSegment.image(_panel_bytes))
                 await bot.send(_append_advice(ev, _with_tip(_msg, tip)))
             else:
                 await bot.send(_with_tip("[鸣潮] diff渲染失败, 无输出", tip))
