@@ -390,10 +390,18 @@ def compute_phantom_diff(old_char: Dict, new_char: Dict,
         a = new_list[i] if i < len(new_list) else None
         if not a and not b:
             continue
-        # 序列化比较
-        b_json = str(sorted(b.items())) if b else ""
-        a_json = str(sorted(a.items())) if a else ""
-        if b_json != a_json:
+        # 仅比较游戏性字段 (部位/等级/主词条/副词条), 忽略图标/描述等无关字段
+        def _phantom_fingerprint(p):
+            if not p or not p.get("phantomProp"):
+                return ""
+            return "|".join([
+                str(p["phantomProp"].get("phantomId", "")),
+                str(p.get("level", "")),
+                str(p.get("cost", "")),
+                str(sorted(p.get("mainProps", []))),
+                str(sorted(p.get("subProps", []))),
+            ])
+        if _phantom_fingerprint(b) != _phantom_fingerprint(a):
             ref = a if a else b
             cost = ref.get("cost", "?")
             old_name = (b or {}).get("phantomProp", {}).get("name", "(空)")

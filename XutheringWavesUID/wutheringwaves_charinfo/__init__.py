@@ -639,7 +639,15 @@ async def send_one_char_detail_msg(bot: Bot, ev: Event):
     if refresh_behavior == "diff":
 
         if not _old_char_diff:
-            return await bot.send(_with_tip(f"[鸣潮] 未找到角色【{char}】的旧面板数据, 无法生成diff", tip))
+            # ponytail: 新角色无旧数据, 跳过diff直接发面板图
+            _panel_im = await draw_char_detail_img(ev, uid, char, user_id, None, need_convert_img=False)
+            if isinstance(_panel_im, Image.Image):
+                await bot.send(_append_advice(ev, _with_tip(MessageSegment.image(await convert_img(_panel_im)), tip)))
+            elif isinstance(_panel_im, str):
+                await bot.send(_with_tip([refresh_seg, _panel_im], tip))
+            else:
+                await bot.send(_with_tip(f"[鸣潮] 未找到角色【{char}】的旧面板数据, 已跳过diff", tip))
+            return
 
         _char_id_val = int(char_id) if char_id and char_id.isdigit() else 0
 
